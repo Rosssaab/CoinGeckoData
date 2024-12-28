@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Top 100 Cryptocurrencies</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .crypto-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .crypto-table th, .crypto-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .crypto-table th {
+            background-color: #f8f9fa;
+            cursor: pointer;
+        }
+        .crypto-table th:hover {
+            background-color: #e9ecef;
+        }
+        .crypto-table tr:hover {
+            background-color: #f5f5f5;
+        }
+        .crypto-image {
+            width: 24px;
+            height: 24px;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        .price-up {
+            color: #4CAF50;
+        }
+        .price-down {
+            color: #F44336;
+        }
+        .rank {
+            background-color: #f0f0f0;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+        .trending {
+            background-color: #ff4444;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            margin-left: 8px;
+        }
+        .sort-asc::after {
+            content: ' ↑';
+        }
+        .sort-desc::after {
+            content: ' ↓';
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+        
+        .modal-content {
+            position: relative;
+            background-color: #fff;
+            margin: 5% auto;
+            padding: 20px;
+            width: 80%;
+            max-width: 800px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border-radius: 8px;
+        }
+        
+        .close-modal {
+            position: absolute;
+            right: 20px;
+            top: 20px;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        
+        .coin-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .detail-card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .social-links {
+            display: flex;
+            gap: 10px;
+            margin: 10px 0;
+        }
+        
+        .social-links a {
+            padding: 5px 10px;
+            border-radius: 5px;
+            text-decoration: none;
+            color: white;
+            background-color: #1da1f2;
+        }
+        
+        .social-links a.reddit { background-color: #ff4500; }
+        .social-links a.github { background-color: #24292e; }
+        
+        .loading-spinner {
+            text-align: center;
+            padding: 20px;
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+            margin-top: 20px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <h1>Top 100 Cryptocurrencies</h1>
+    
+    {% if crypto_data.error %}
+        <div class="error">
+            <p><strong>Error:</strong> {{ crypto_data.error }}</p>
+            <p>Please try again later.</p>
+        </div>
+    {% else %}
+        <table class="crypto-table">
+            <thead>
+                <tr>
+                    <th data-sort="market_cap_rank">#</th>
+                    <th data-sort="name">Name</th>
+                    <th data-sort="current_price">Price</th>
+                    <th data-sort="price_change_24h">24h Change</th>
+                    <th data-sort="market_cap">Market Cap</th>
+                    <th data-sort="volume_24h">Volume (24h)</th>
+                    <th>Last Updated</th>
+                </tr>
+            </thead>
+            <tbody id="crypto-tbody">
+                {% for crypto in crypto_data.data %}
+                    <tr data-coin-id="{{ crypto.id }}">
+                        <td><span class="rank">#{{ crypto.market_cap_rank }}</span></td>
+                        <td>
+                            <img src="{{ crypto.image }}" alt="{{ crypto.name }}" class="crypto-image">
+                            {{ crypto.name }} ({{ crypto.symbol }})
+                            {% if crypto.is_trending %}
+                                <span class="trending">🔥 Trending</span>
+                            {% endif %}
+                        </td>
+                        <td>${{ "{:,.2f}".format(crypto.current_price) }}</td>
+                        <td class="{{ 'price-up' if crypto.price_change_24h > 0 else 'price-down' }}">
+                            {{ "{:,.2f}%".format(crypto.price_change_24h) }}
+                        </td>
+                        <td>${{ "{:,.0f}".format(crypto.market_cap) }}</td>
+                        <td>${{ "{:,.0f}".format(crypto.volume_24h) }}</td>
+                        <td><small>{{ crypto.last_updated }}</small></td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% endif %}
+
+    <div id="coinModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal">&times;</span>
+            <div id="modalContent">
+                <div class="loading-spinner">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const getCellValue = (tr, idx) => {
+                const cell = tr.children[idx];
+                const text = cell.innerText.replace(/[$,]/g, '');
+                const cleanText = text.replace('%', '');
+                return isNaN(cleanText) ? text.toLowerCase() : parseFloat(cleanText);
+            };
+
+            const comparer = (idx, asc) => (a, b) => {
+                const v1 = getCellValue(asc ? a : b, idx);
+                const v2 = getCellValue(asc ? b : a, idx);
+                return typeof v1 === 'string' ? v1.localeCompare(v2) : v1 - v2;
+            };
+
+            let currentSort = {
+                column: null,
+                asc: true
+            };
+
+            document.querySelectorAll('th').forEach(th => {
+                th.addEventListener('click', (() => {
+                    const table = th.closest('table');
+                    const tbody = table.querySelector('tbody');
+                    const rows = Array.from(tbody.querySelectorAll('tr'));
+                    const columnIndex = Array.from(th.parentNode.children).indexOf(th);
+                    
+                    th.parentNode.querySelectorAll('th').forEach(header => {
+                        header.classList.remove('sort-asc', 'sort-desc');
+                    });
+
+                    if (currentSort.column === columnIndex) {
+                        currentSort.asc = !currentSort.asc;
+                    } else {
+                        currentSort.column = columnIndex;
+                        currentSort.asc = true;
+                    }
+                    
+                    th.classList.add(currentSort.asc ? 'sort-asc' : 'sort-desc');
+                    rows.sort(comparer(columnIndex, currentSort.asc));
+                    tbody.append(...rows);
+                }));
+            });
+        });
+
+        const rateLimiter = {
+            queue: [],
+            processing: false,
+            
+            async add(coinId) {
+                return new Promise((resolve, reject) => {
+                    this.queue.push({ coinId, resolve, reject });
+                    if (!this.processing) {
+                        this.processQueue();
+                    }
+                });
+            },
+            
+            async processQueue() {
+                if (this.queue.length === 0) {
+                    this.processing = false;
+                    return;
+                }
+                
+                this.processing = true;
+                const { coinId, resolve, reject } = this.queue.shift();
+                
+                try {
+                    const response = await fetch(`/get_coin_details/${coinId}`);
+                    const data = await response.json();
+                    resolve(data);
+                } catch (error) {
+                    reject(error);
+                }
+                
+                // Wait 6 seconds before next request
+                await new Promise(resolve => setTimeout(resolve, 6000));
+                this.processQueue();
+            }
+        };
+
+        document.querySelectorAll('tr[data-coin-id]').forEach(row => {
+            row.style.cursor = 'pointer';
+            row.addEventListener('click', async () => {
+                const coinId = row.dataset.coinId;
+                const modal = document.getElementById('coinModal');
+                const modalContent = document.getElementById('modalContent');
+                
+                modal.style.display = 'block';
+                modalContent.innerHTML = '<div class="loading-spinner">Loading...<br>Please wait, respecting rate limits...</div>';
+                
+                try {
+                    const data = await rateLimiter.add(coinId);
+                    const communityData = data.community_data;
+                    const devData = data.developer_data;
+                    
+                    modalContent.innerHTML = `
+                        <h2>${row.querySelector('td:nth-child(2)').textContent}</h2>
+                        
+                        <div class="social-links">
+                            ${data.links.twitter ? `<a href="${data.links.twitter}" target="_blank">Twitter</a>` : ''}
+                            ${data.links.reddit ? `<a href="${data.links.reddit}" target="_blank" class="reddit">Reddit</a>` : ''}
+                            ${data.links.github.length ? `<a href="${data.links.github[0]}" target="_blank" class="github">GitHub</a>` : ''}
+                        </div>
+                        
+                        <div class="coin-details">
+                            <div class="detail-card">
+                                <h3>Community Stats</h3>
+                                <p>Twitter Followers: ${communityData.twitter_followers?.toLocaleString() || 'N/A'}</p>
+                                <p>Reddit Subscribers: ${communityData.reddit_subscribers?.toLocaleString() || 'N/A'}</p>
+                                <p>Reddit Active Users: ${communityData.reddit_accounts_active_48h?.toLocaleString() || 'N/A'}</p>
+                                <p>Telegram Users: ${communityData.telegram_channel_user_count?.toLocaleString() || 'N/A'}</p>
+                            </div>
+                            
+                            <div class="detail-card">
+                                <h3>Developer Activity</h3>
+                                <p>GitHub Stars: ${devData.stars?.toLocaleString() || 'N/A'}</p>
+                                <p>Total Issues: ${devData.total_issues?.toLocaleString() || 'N/A'}</p>
+                                <p>Closed Issues: ${devData.closed_issues?.toLocaleString() || 'N/A'}</p>
+                                <p>Contributors: ${devData.contributors?.toLocaleString() || 'N/A'}</p>
+                            </div>
+                            
+                            ${data.description ? `
+                                <div class="detail-card">
+                                    <h3>About</h3>
+                                    <p>${data.description}</p>
+                                </div>
+                            ` : ''}
+                            
+                            <div class="detail-card" style="grid-column: 1 / -1;">
+                                <h3>Social Media Activity (Last 7 Days)</h3>
+                                <div class="chart-container">
+                                    <canvas id="socialChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Create the chart
+                    if (data.social_activity) {
+                        const ctx = document.getElementById('socialChart').getContext('2d');
+                        new Chart(ctx, {
+                            type: 'line',
+                            data: {
+                                labels: data.social_activity.dates.reverse(),
+                                datasets: [
+                                    {
+                                        label: 'Twitter Posts',
+                                        data: data.social_activity.twitter_posts.reverse(),
+                                        borderColor: '#1DA1F2',
+                                        tension: 0.1
+                                    },
+                                    {
+                                        label: 'Reddit Posts',
+                                        data: data.social_activity.reddit_posts.reverse(),
+                                        borderColor: '#FF4500',
+                                        tension: 0.1
+                                    },
+                                    {
+                                        label: 'Reddit Comments',
+                                        data: data.social_activity.reddit_comments.reverse(),
+                                        borderColor: '#FF8C00',
+                                        tension: 0.1
+                                    }
+                                ]
+                            },
+                            options: {
+                                responsive: true,
+                                maintainAspectRatio: false,
+                                interaction: {
+                                    intersect: false,
+                                    mode: 'index'
+                                },
+                                scales: {
+                                    y: {
+                                        beginAtZero: true,
+                                        title: {
+                                            display: true,
+                                            text: 'Number of Posts/Comments'
+                                        }
+                                    },
+                                    x: {
+                                        title: {
+                                            display: true,
+                                            text: 'Date'
+                                        }
+                                    }
+                                }
+                            }
+                        });
+                    }
+                    
+                } catch (error) {
+                    modalContent.innerHTML = `
+                        <div class="error">
+                            <h3>Error</h3>
+                            <p>${error.message}</p>
+                            ${error.message.includes('Rate limit') ? 
+                                '<p>CoinGecko\'s free API has a rate limit. Please wait 1-2 minutes before trying again.</p>' 
+                                : ''}
+                        </div>`;
+                }
+            });
+        });
+        
+        document.querySelector('.close-modal').onclick = () => {
+            document.getElementById('coinModal').style.display = 'none';
+        };
+        
+        window.onclick = (event) => {
+            const modal = document.getElementById('coinModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        };
+    </script>
+</body>
+</html> 
