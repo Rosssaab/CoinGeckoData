@@ -235,42 +235,6 @@
             });
         });
 
-        const rateLimiter = {
-            queue: [],
-            processing: false,
-            
-            async add(coinId) {
-                return new Promise((resolve, reject) => {
-                    this.queue.push({ coinId, resolve, reject });
-                    if (!this.processing) {
-                        this.processQueue();
-                    }
-                });
-            },
-            
-            async processQueue() {
-                if (this.queue.length === 0) {
-                    this.processing = false;
-                    return;
-                }
-                
-                this.processing = true;
-                const { coinId, resolve, reject } = this.queue.shift();
-                
-                try {
-                    const response = await fetch(`/get_coin_details/${coinId}`);
-                    const data = await response.json();
-                    resolve(data);
-                } catch (error) {
-                    reject(error);
-                }
-                
-                // Wait 6 seconds before next request
-                await new Promise(resolve => setTimeout(resolve, 6000));
-                this.processQueue();
-            }
-        };
-
         document.querySelectorAll('tr[data-coin-id]').forEach(row => {
             row.style.cursor = 'pointer';
             row.addEventListener('click', async () => {
@@ -279,117 +243,44 @@
                 const modalContent = document.getElementById('modalContent');
                 
                 modal.style.display = 'block';
-                modalContent.innerHTML = '<div class="loading-spinner">Loading...<br>Please wait, respecting rate limits...</div>';
+                modalContent.innerHTML = '<div class="loading-spinner">Loading...</div>';
                 
                 try {
-                    const data = await rateLimiter.add(coinId);
-                    const communityData = data.community_data;
-                    const devData = data.developer_data;
+                    const response = await fetch(`/get_coin_details/${coinId}`);
+                    const data = await response.json();
                     
                     modalContent.innerHTML = `
                         <h2>${row.querySelector('td:nth-child(2)').textContent}</h2>
                         
-                        <div class="social-links">
-                            ${data.links.twitter ? `<a href="${data.links.twitter}" target="_blank">Twitter</a>` : ''}
-                            ${data.links.reddit ? `<a href="${data.links.reddit}" target="_blank" class="reddit">Reddit</a>` : ''}
-                            ${data.links.github.length ? `<a href="${data.links.github[0]}" target="_blank" class="github">GitHub</a>` : ''}
-                        </div>
-                        
                         <div class="coin-details">
                             <div class="detail-card">
-                                <h3>Community Stats</h3>
-                                <p>Twitter Followers: ${communityData.twitter_followers?.toLocaleString() || 'N/A'}</p>
-                                <p>Reddit Subscribers: ${communityData.reddit_subscribers?.toLocaleString() || 'N/A'}</p>
-                                <p>Reddit Active Users: ${communityData.reddit_accounts_active_48h?.toLocaleString() || 'N/A'}</p>
-                                <p>Telegram Users: ${communityData.telegram_channel_user_count?.toLocaleString() || 'N/A'}</p>
+                                <h3>Market Data</h3>
+                                <p>Current Price: $${Number(data.market_data.current_price).toLocaleString()}</p>
+                                <p>Market Cap: $${Number(data.market_data.market_cap).toLocaleString()}</p>
+                                <p>24h Volume: $${Number(data.market_data.total_volume).toLocaleString()}</p>
+                                <p>24h Price Change: ${Number(data.market_data.price_change_24h).toFixed(2)}%</p>
+                                ${data.is_trending ? '<p><span class="trending">🔥 Trending</span></p>' : ''}
                             </div>
                             
                             <div class="detail-card">
-                                <h3>Developer Activity</h3>
-                                <p>GitHub Stars: ${devData.stars?.toLocaleString() || 'N/A'}</p>
-                                <p>Total Issues: ${devData.total_issues?.toLocaleString() || 'N/A'}</p>
-                                <p>Closed Issues: ${devData.closed_issues?.toLocaleString() || 'N/A'}</p>
-                                <p>Contributors: ${devData.contributors?.toLocaleString() || 'N/A'}</p>
+                                <h3>Sentiment Data</h3>
+                                <p>Positive Votes: ${Number(data.community_data.sentiment_votes_up || 0).toLocaleString()}</p>
+                                <p>Negative Votes: ${Number(data.community_data.sentiment_votes_down || 0).toLocaleString()}</p>
+                                <p>Public Interest Score: ${Number(data.community_data.public_interest_score || 0).toLocaleString()}</p>
                             </div>
                             
-                            ${data.description ? `
-                                <div class="detail-card">
-                                    <h3>About</h3>
-                                    <p>${data.description}</p>
-                                </div>
-                            ` : ''}
-                            
-                            <div class="detail-card" style="grid-column: 1 / -1;">
-                                <h3>Social Media Activity (Last 7 Days)</h3>
-                                <div class="chart-container">
-                                    <canvas id="socialChart"></canvas>
-                                </div>
+                            <div class="detail-card">
+                                <h3>Last Updated</h3>
+                                <p>${new Date(data.last_updated).toLocaleString()}</p>
                             </div>
                         </div>
                     `;
-                    
-                    // Create the chart
-                    if (data.social_activity) {
-                        const ctx = document.getElementById('socialChart').getContext('2d');
-                        new Chart(ctx, {
-                            type: 'line',
-                            data: {
-                                labels: data.social_activity.dates.reverse(),
-                                datasets: [
-                                    {
-                                        label: 'Twitter Posts',
-                                        data: data.social_activity.twitter_posts.reverse(),
-                                        borderColor: '#1DA1F2',
-                                        tension: 0.1
-                                    },
-                                    {
-                                        label: 'Reddit Posts',
-                                        data: data.social_activity.reddit_posts.reverse(),
-                                        borderColor: '#FF4500',
-                                        tension: 0.1
-                                    },
-                                    {
-                                        label: 'Reddit Comments',
-                                        data: data.social_activity.reddit_comments.reverse(),
-                                        borderColor: '#FF8C00',
-                                        tension: 0.1
-                                    }
-                                ]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                interaction: {
-                                    intersect: false,
-                                    mode: 'index'
-                                },
-                                scales: {
-                                    y: {
-                                        beginAtZero: true,
-                                        title: {
-                                            display: true,
-                                            text: 'Number of Posts/Comments'
-                                        }
-                                    },
-                                    x: {
-                                        title: {
-                                            display: true,
-                                            text: 'Date'
-                                        }
-                                    }
-                                }
-                            }
-                        });
-                    }
                     
                 } catch (error) {
                     modalContent.innerHTML = `
                         <div class="error">
                             <h3>Error</h3>
-                            <p>${error.message}</p>
-                            ${error.message.includes('Rate limit') ? 
-                                '<p>CoinGecko\'s free API has a rate limit. Please wait 1-2 minutes before trying again.</p>' 
-                                : ''}
+                            <p>Could not load coin details: ${error.message}</p>
                         </div>`;
                 }
             });
