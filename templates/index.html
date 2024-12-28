@@ -133,10 +133,65 @@
             width: 100%;
             margin-top: 20px;
         }
+        .banner {
+            background-color: #2c3e50;
+            color: white;
+            padding: 1rem;
+            margin-bottom: 20px;
+        }
+        
+        .banner h1 {
+            margin: 0;
+            font-size: 2rem;
+            text-align: center;
+        }
+        
+        .nav-tabs {
+            background-color: #34495e;
+            padding: 10px 20px 0;
+            margin: 0;
+        }
+        
+        .nav-tabs ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-tabs li a {
+            display: inline-block;
+            padding: 10px 20px;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px 5px 0 0;
+            transition: background-color 0.3s;
+        }
+        
+        .nav-tabs li a:hover {
+            background-color: #465c71;
+        }
+        
+        .nav-tabs li a.active {
+            background-color: white;
+            color: #2c3e50;
+        }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
+    <div class="banner">
+        <h1>Crypto Predictor</h1>
+    </div>
+    
+    <nav class="nav-tabs">
+        <ul>
+            <li><a href="/" class="active">Top 100</a></li>
+            <li><a href="/trending">Trending</a></li>
+        </ul>
+    </nav>
+
     <h1>Top 100 Cryptocurrencies</h1>
     
     {% if crypto_data.error %}
@@ -259,6 +314,7 @@
                                 <p>Market Cap: $${Number(data.market_data.market_cap).toLocaleString()}</p>
                                 <p>24h Volume: $${Number(data.market_data.total_volume).toLocaleString()}</p>
                                 <p>24h Price Change: ${Number(data.market_data.price_change_24h).toFixed(2)}%</p>
+                                <p>Last Updated: ${data.price_datetime}</p>
                                 ${data.is_trending ? '<p><span class="trending">🔥 Trending</span></p>' : ''}
                             </div>
                             
@@ -267,11 +323,7 @@
                                 <p>Positive Votes: ${Number(data.community_data.sentiment_votes_up || 0).toLocaleString()}</p>
                                 <p>Negative Votes: ${Number(data.community_data.sentiment_votes_down || 0).toLocaleString()}</p>
                                 <p>Public Interest Score: ${Number(data.community_data.public_interest_score || 0).toLocaleString()}</p>
-                            </div>
-                            
-                            <div class="detail-card">
-                                <h3>Last Updated</h3>
-                                <p>${new Date(data.last_updated).toLocaleString()}</p>
+                                <p>Last Updated: ${data.sentiment_datetime}</p>
                             </div>
                         </div>
                     `;
