@@ -1,353 +1,242 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Top 100 Cryptocurrencies</title>
+    <title>Crypto Predictor</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
+            margin: 20px;
         }
-        .crypto-table {
+        .header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .nav-tabs {
+            margin-bottom: 20px;
+        }
+        .nav-tabs button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            border: none;
+            background-color: #34495e;
+            color: white;
+            cursor: pointer;
+        }
+        .nav-tabs button.active {
+            background-color: #2c3e50;
+        }
+        table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
         }
-        .crypto-table th, .crypto-table td {
+        th, td {
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #ddd;
         }
-        .crypto-table th {
-            background-color: #f8f9fa;
-            cursor: pointer;
-        }
-        .crypto-table th:hover {
-            background-color: #e9ecef;
-        }
-        .crypto-table tr:hover {
+        th {
             background-color: #f5f5f5;
         }
-        .crypto-image {
-            width: 24px;
-            height: 24px;
-            vertical-align: middle;
-            margin-right: 10px;
-        }
         .price-up {
-            color: #4CAF50;
+            color: green;
         }
         .price-down {
-            color: #F44336;
+            color: red;
         }
-        .rank {
-            background-color: #f0f0f0;
-            padding: 3px 8px;
-            border-radius: 4px;
-            font-size: 0.9em;
-        }
-        .trending {
-            background-color: #ff4444;
-            color: white;
-            padding: 2px 8px;
-            border-radius: 12px;
-            font-size: 0.8em;
-            margin-left: 8px;
-        }
-        .sort-asc::after {
-            content: ' ↑';
-        }
-        .sort-desc::after {
-            content: ' ↓';
-        }
+        /* Add modal styles */
         .modal {
             display: none;
             position: fixed;
-            top: 0;
+            z-index: 1;
             left: 0;
+            top: 0;
             width: 100%;
             height: 100%;
-            background-color: rgba(0,0,0,0.5);
-            z-index: 1000;
+            background-color: rgba(0,0,0,0.4);
         }
-        
+
         .modal-content {
-            position: relative;
-            background-color: #fff;
-            margin: 5% auto;
+            background-color: #fefefe;
+            margin: 15% auto;
             padding: 20px;
+            border: 1px solid #888;
             width: 80%;
-            max-width: 800px;
-            max-height: 80vh;
-            overflow-y: auto;
-            border-radius: 8px;
+            max-width: 600px;
+            border-radius: 5px;
         }
-        
-        .close-modal {
-            position: absolute;
-            right: 20px;
-            top: 20px;
-            font-size: 24px;
+
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
             cursor: pointer;
         }
-        
-        .coin-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
+
+        .close:hover {
+            color: black;
         }
-        
-        .detail-card {
-            border: 1px solid #ddd;
-            padding: 15px;
-            border-radius: 8px;
+
+        tr.clickable {
+            cursor: pointer;
         }
-        
-        .social-links {
-            display: flex;
-            gap: 10px;
-            margin: 10px 0;
+
+        tr.clickable:hover {
+            background-color: #f5f5f5;
         }
-        
-        .social-links a {
-            padding: 5px 10px;
-            border-radius: 5px;
-            text-decoration: none;
-            color: white;
-            background-color: #1da1f2;
+
+        .prediction-up {
+            color: green;
+            font-weight: bold;
         }
-        
-        .social-links a.reddit { background-color: #ff4500; }
-        .social-links a.github { background-color: #24292e; }
-        
-        .loading-spinner {
-            text-align: center;
-            padding: 20px;
-        }
-        .chart-container {
-            position: relative;
-            height: 300px;
-            width: 100%;
-            margin-top: 20px;
-        }
-        .banner {
-            background-color: #2c3e50;
-            color: white;
-            padding: 1rem;
-            margin-bottom: 20px;
-        }
-        
-        .banner h1 {
-            margin: 0;
-            font-size: 2rem;
-            text-align: center;
-        }
-        
-        .nav-tabs {
-            background-color: #34495e;
-            padding: 10px 20px 0;
-            margin: 0;
-        }
-        
-        .nav-tabs ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: flex;
-            gap: 10px;
-        }
-        
-        .nav-tabs li a {
-            display: inline-block;
-            padding: 10px 20px;
-            color: white;
-            text-decoration: none;
-            border-radius: 5px 5px 0 0;
-            transition: background-color 0.3s;
-        }
-        
-        .nav-tabs li a:hover {
-            background-color: #465c71;
-        }
-        
-        .nav-tabs li a.active {
-            background-color: white;
-            color: #2c3e50;
+
+        .prediction-down {
+            color: red;
+            font-weight: bold;
         }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
-    <div class="banner">
+    <div class="header">
         <h1>Crypto Predictor</h1>
     </div>
     
-    <nav class="nav-tabs">
-        <ul>
-            <li><a href="/" class="active">Top 100</a></li>
-            <li><a href="/trending">Trending</a></li>
-        </ul>
-    </nav>
+    <div class="nav-tabs">
+        <button class="active">Top 100</button>
+        <button onclick="window.location.href='/trending'">Trending</button>
+    </div>
 
-    <h1>Top 100 Cryptocurrencies</h1>
+    <h2>Top 100 Cryptocurrencies</h2>
     
-    {% if crypto_data.error %}
-        <div class="error">
-            <p><strong>Error:</strong> {{ crypto_data.error }}</p>
-            <p>Please try again later.</p>
-        </div>
-    {% else %}
-        <table class="crypto-table">
-            <thead>
-                <tr>
-                    <th data-sort="market_cap_rank">#</th>
-                    <th data-sort="name">Name</th>
-                    <th data-sort="current_price">Price</th>
-                    <th data-sort="price_change_24h">24h Change</th>
-                    <th data-sort="market_cap">Market Cap</th>
-                    <th data-sort="volume_24h">Volume (24h)</th>
-                    <th>Last Updated</th>
-                </tr>
-            </thead>
-            <tbody id="crypto-tbody">
-                {% for crypto in crypto_data.data %}
-                    <tr data-coin-id="{{ crypto.id }}">
-                        <td><span class="rank">#{{ crypto.market_cap_rank }}</span></td>
-                        <td>
-                            <img src="{{ crypto.image }}" alt="{{ crypto.name }}" class="crypto-image">
-                            {{ crypto.name }} ({{ crypto.symbol }})
-                            {% if crypto.is_trending %}
-                                <span class="trending">🔥 Trending</span>
-                            {% endif %}
-                        </td>
-                        <td>${{ "{:,.2f}".format(crypto.current_price) }}</td>
-                        <td class="{{ 'price-up' if crypto.price_change_24h > 0 else 'price-down' }}">
-                            {{ "{:,.2f}%".format(crypto.price_change_24h) }}
-                        </td>
-                        <td>${{ "{:,.0f}".format(crypto.market_cap) }}</td>
-                        <td>${{ "{:,.0f}".format(crypto.volume_24h) }}</td>
-                        <td><small>{{ crypto.last_updated }}</small></td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% endif %}
+    <table>
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>24h Change</th>
+                <th>Market Cap</th>
+                <th>Volume (24h)</th>
+                <th>Last Updated</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for crypto in crypto_data %}
+            <tr data-id="{{ crypto.id }}" class="clickable">
+                <td>{{ crypto.market_cap_rank }}</td>
+                <td>
+                    <img src="{{ crypto.image_url }}" alt="{{ crypto.symbol }}" style="width: 24px; height: 24px; vertical-align: middle; margin-right: 10px;">
+                    {{ crypto.name }} ({{ crypto.symbol.upper() }})
+                </td>
+                <td>${{ "%.2f"|format(crypto.latest_price) }}</td>
+                <td class="{{ 'price-up' if (crypto.price_change_24h or 0) > 0 else 'price-down' }}">
+                    {{ "%.2f"|format(crypto.price_change_24h or 0) }}%
+                </td>
+                <td>${{ "{:,.0f}".format(crypto.market_cap) }}</td>
+                <td>${{ "{:,.0f}".format(crypto.total_volume) }}</td>
+                <td>{{ crypto.price_date.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
 
-    <div id="coinModal" class="modal">
+    <!-- Add modal -->
+    <div id="cryptoModal" class="modal">
         <div class="modal-content">
-            <span class="close-modal">&times;</span>
+            <span class="close">&times;</span>
+            <h2 id="modalTitle"></h2>
             <div id="modalContent">
-                <div class="loading-spinner">Loading...</div>
+                <div style="display: flex; margin-bottom: 20px;">
+                    <img id="modalImage" style="width: 64px; height: 64px; margin-right: 20px;">
+                    <div>
+                        <p>Current Price: <span id="modalPrice"></span></p>
+                        <p>24h Change: <span id="modal24hChange"></span></p>
+                        <p>Market Cap: <span id="modalMarketCap"></span></p>
+                        <p>Volume (24h): <span id="modalVolume"></span></p>
+                    </div>
+                </div>
+                <h3>Price Predictions</h3>
+                <table style="width: 100%;">
+                    <tr>
+                        <th>Timeframe</th>
+                        <th>Predicted Price</th>
+                        <th>Change</th>
+                    </tr>
+                    <tr>
+                        <td>24 Hours</td>
+                        <td id="pred24h"></td>
+                        <td id="pred24hChange"></td>
+                    </tr>
+                    <tr>
+                        <td>7 Days</td>
+                        <td id="pred7d"></td>
+                        <td id="pred7dChange"></td>
+                    </tr>
+                </table>
             </div>
         </div>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const getCellValue = (tr, idx) => {
-                const cell = tr.children[idx];
-                const text = cell.innerText.replace(/[$,]/g, '');
-                const cleanText = text.replace('%', '');
-                return isNaN(cleanText) ? text.toLowerCase() : parseFloat(cleanText);
-            };
-
-            const comparer = (idx, asc) => (a, b) => {
-                const v1 = getCellValue(asc ? a : b, idx);
-                const v2 = getCellValue(asc ? b : a, idx);
-                return typeof v1 === 'string' ? v1.localeCompare(v2) : v1 - v2;
-            };
-
-            let currentSort = {
-                column: null,
-                asc: true
-            };
-
-            document.querySelectorAll('th').forEach(th => {
-                th.addEventListener('click', (() => {
-                    const table = th.closest('table');
-                    const tbody = table.querySelector('tbody');
-                    const rows = Array.from(tbody.querySelectorAll('tr'));
-                    const columnIndex = Array.from(th.parentNode.children).indexOf(th);
-                    
-                    th.parentNode.querySelectorAll('th').forEach(header => {
-                        header.classList.remove('sort-asc', 'sort-desc');
-                    });
-
-                    if (currentSort.column === columnIndex) {
-                        currentSort.asc = !currentSort.asc;
-                    } else {
-                        currentSort.column = columnIndex;
-                        currentSort.asc = true;
-                    }
-                    
-                    th.classList.add(currentSort.asc ? 'sort-asc' : 'sort-desc');
-                    rows.sort(comparer(columnIndex, currentSort.asc));
-                    tbody.append(...rows);
-                }));
-            });
+        // Add class to make rows clickable
+        document.querySelectorAll('tbody tr').forEach(row => {
+            row.classList.add('clickable');
         });
 
-        document.querySelectorAll('tr[data-coin-id]').forEach(row => {
-            row.style.cursor = 'pointer';
+        // Get modal elements
+        const modal = document.getElementById('cryptoModal');
+        const closeBtn = document.getElementsByClassName('close')[0];
+
+        // Close modal when clicking X or outside
+        closeBtn.onclick = () => modal.style.display = 'none';
+        window.onclick = (event) => {
+            if (event.target == modal) modal.style.display = 'none';
+        }
+
+        // Handle row clicks
+        document.querySelectorAll('tbody tr').forEach(row => {
             row.addEventListener('click', async () => {
-                const coinId = row.dataset.coinId;
-                const modal = document.getElementById('coinModal');
-                const modalContent = document.getElementById('modalContent');
-                
-                modal.style.display = 'block';
-                modalContent.innerHTML = '<div class="loading-spinner">Loading...</div>';
-                
                 try {
-                    const response = await fetch(`/get_coin_details/${coinId}`);
+                    const cryptoId = row.getAttribute('data-id');
+                    console.log('Clicked crypto ID:', cryptoId); // Debug line
+
+                    const response = await fetch(`/get_coin_details/${cryptoId}`);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
                     const data = await response.json();
+                    console.log('Received data:', data); // Debug line
                     
-                    modalContent.innerHTML = `
-                        <h2>${row.querySelector('td:nth-child(2)').textContent}</h2>
-                        
-                        <div class="coin-details">
-                            <div class="detail-card">
-                                <h3>Market Data</h3>
-                                <p>Current Price: $${Number(data.market_data.current_price).toLocaleString()}</p>
-                                <p>Market Cap: $${Number(data.market_data.market_cap).toLocaleString()}</p>
-                                <p>24h Volume: $${Number(data.market_data.total_volume).toLocaleString()}</p>
-                                <p>24h Price Change: ${Number(data.market_data.price_change_24h).toFixed(2)}%</p>
-                                <p>Last Updated: ${data.price_datetime}</p>
-                                ${data.is_trending ? '<p><span class="trending">🔥 Trending</span></p>' : ''}
-                            </div>
-                            
-                            <div class="detail-card">
-                                <h3>Sentiment Data</h3>
-                                <p>Positive Votes: ${Number(data.community_data.sentiment_votes_up || 0).toLocaleString()}</p>
-                                <p>Negative Votes: ${Number(data.community_data.sentiment_votes_down || 0).toLocaleString()}</p>
-                                <p>Public Interest Score: ${Number(data.community_data.public_interest_score || 0).toLocaleString()}</p>
-                                <p>Last Updated: ${data.sentiment_datetime}</p>
-                            </div>
-                        </div>
-                    `;
+                    // Update modal content
+                    document.getElementById('modalTitle').textContent = `${data.name} (${data.symbol.toUpperCase()})`;
+                    document.getElementById('modalImage').src = data.image_url;
+                    document.getElementById('modalPrice').textContent = `$${data.latest_price.toFixed(2)}`;
+                    document.getElementById('modal24hChange').textContent = `${data.price_change_24h.toFixed(2)}%`;
+                    document.getElementById('modalMarketCap').textContent = `$${data.market_cap.toLocaleString()}`;
+                    document.getElementById('modalVolume').textContent = `$${data.total_volume.toLocaleString()}`;
                     
+                    // Calculate prediction changes
+                    const pred24hChange = ((data.pred_24h - data.latest_price) / data.latest_price * 100);
+                    const pred7dChange = ((data.pred_7d - data.latest_price) / data.latest_price * 100);
+                    
+                    // Update predictions
+                    document.getElementById('pred24h').textContent = `$${data.pred_24h.toFixed(2)}`;
+                    document.getElementById('pred24hChange').textContent = `${pred24hChange.toFixed(2)}%`;
+                    document.getElementById('pred24hChange').className = pred24hChange >= 0 ? 'prediction-up' : 'prediction-down';
+                    
+                    document.getElementById('pred7d').textContent = `$${data.pred_7d.toFixed(2)}`;
+                    document.getElementById('pred7dChange').textContent = `${pred7dChange.toFixed(2)}%`;
+                    document.getElementById('pred7dChange').className = pred7dChange >= 0 ? 'prediction-up' : 'prediction-down';
+                    
+                    // Show modal
+                    modal.style.display = 'block';
                 } catch (error) {
-                    modalContent.innerHTML = `
-                        <div class="error">
-                            <h3>Error</h3>
-                            <p>Could not load coin details: ${error.message}</p>
-                        </div>`;
+                    console.error('Error fetching crypto details:', error);
                 }
             });
         });
-        
-        document.querySelector('.close-modal').onclick = () => {
-            document.getElementById('coinModal').style.display = 'none';
-        };
-        
-        window.onclick = (event) => {
-            const modal = document.getElementById('coinModal');
-            if (event.target === modal) {
-                modal.style.display = 'none';
-            }
-        };
     </script>
 </body>
 </html> 

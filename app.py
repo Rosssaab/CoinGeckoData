@@ -158,56 +158,61 @@ def get_coin_details(coin_id):
 @app.route('/trending')
 def trending():
     """Get trending cryptocurrencies from database"""
+    conn = pyodbc.connect(DB_CONNECTION_STRING)
+    cursor = conn.cursor()
+    
     try:
-        with get_db_connection() as conn:
-            cursor = conn.cursor()
-            
-            cursor.execute("""
-                WITH LatestData AS (
-                    SELECT 
-                        crypto_id,
-                        current_price,
-                        market_cap,
-                        market_cap_rank,
-                        price_change_24h,
-                        total_volume,
-                        is_trending,
-                        price_date,
-                        ROW_NUMBER() OVER (PARTITION BY crypto_id ORDER BY price_date DESC) as rn
-                    FROM coingecko_crypto_daily_data
-                )
+        cursor.execute("""
+            WITH LatestData AS (
                 SELECT 
-                    m.id,
-                    m.name,
-                    m.symbol,
-                    m.image_id,
-                    m.image_filename,
-                    d.current_price,
-                    d.market_cap,
-                    d.market_cap_rank,
-                    d.price_change_24h,
-                    d.total_volume as volume_24h,
-                    d.is_trending,
-                    d.price_date as last_updated
-                FROM coingecko_crypto_master m
-                JOIN LatestData d ON m.id = d.crypto_id AND d.rn = 1
-                WHERE d.is_trending = 1
-                ORDER BY d.market_cap_rank
-            """)
-            
-            columns = [column[0] for column in cursor.description]
-            results = []
-            
-            for row in cursor.fetchall():
-                crypto = dict(zip(columns, row))
-                crypto['image'] = f"https://assets.coingecko.com/coins/images/{crypto['image_id']}/thumb/{crypto['image_filename']}"
-                results.append(crypto)
-            
-            return render_template('trending.html', crypto_data={'data': results, 'error': None})
-            
+                    crypto_id,
+                    current_price,
+                    market_cap,
+                    market_cap_rank,
+                    price_change_24h,
+                    total_volume,
+                    is_trending,
+                    price_date,
+                    ROW_NUMBER() OVER (PARTITION BY crypto_id ORDER BY price_date DESC) as rn
+                FROM coingecko_crypto_daily_data
+                WHERE price_date >= DATEADD(hour, -24, GETDATE())
+            )
+            SELECT 
+                m.id,
+                m.name,
+                m.symbol,
+                m.image_id,
+                m.image_filename,
+                d.current_price,
+                d.market_cap,
+                d.market_cap_rank,
+                d.price_change_24h,
+                d.total_volume as volume_24h,
+                d.is_trending,
+                d.price_date as last_updated
+            FROM coingecko_crypto_master m
+            JOIN LatestData d ON m.id = d.crypto_id AND d.rn = 1
+            WHERE d.is_trending = 1
+            ORDER BY d.market_cap_rank
+        """)
+        
+        columns = [column[0] for column in cursor.description]
+        results = []
+        
+        for row in cursor.fetchall():
+            crypto = dict(zip(columns, row))
+            crypto['image_url'] = f"https://assets.coingecko.com/coins/images/{crypto['image_id']}/thumb/{crypto['image_filename']}"
+            results.append(crypto)
+        
+        return render_template('trending.html', crypto_data=results)
+        
     except Exception as e:
         print(f"Database error: {str(e)}")
-        return render_template('trending.html', crypto_data={'error': str(e)})
+        return render_template('trending.html', crypto_data=[])
+        
+    finally:
+        cursor.close()
+        conn.close()
 
 @app.route('/crypto/<crypto_id>')
 def crypto_detail(crypto_id):

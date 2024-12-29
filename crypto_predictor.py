@@ -1,3 +1,8 @@
+import os
+# Set environment variables for reproducibility
+os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
+os.environ['PYTHONHASHSEED'] = '0'
+
 import pandas as pd
 import numpy as np
 from tensorflow.keras.models import load_model
@@ -97,17 +102,14 @@ class CryptoPredictor:
         """Make predictions for all cryptocurrencies"""
         cursor = self.conn.cursor()
         cursor.execute("""
-            SELECT id, symbol, name 
-            FROM coingecko_crypto_master 
-            WHERE id IN (
-                SELECT DISTINCT crypto_id 
-                FROM coingecko_crypto_daily_data
-            )
-            ORDER BY market_cap DESC  -- Prioritize larger cryptocurrencies
+            SELECT DISTINCT c.id, c.symbol, c.name, c.market_cap_rank
+            FROM coingecko_crypto_master c
+            INNER JOIN coingecko_crypto_daily_data d ON c.id = d.crypto_id
+            ORDER BY c.market_cap_rank ASC
         """)
         crypto_ids = cursor.fetchall()
         
-        for crypto_id, symbol, name in crypto_ids:
+        for crypto_id, symbol, name, rank in crypto_ids:
             try:
                 # Find latest model
                 model_files = glob.glob(f'models/{crypto_id}_LSTM_v1_*.h5')
