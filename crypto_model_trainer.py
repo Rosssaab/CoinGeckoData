@@ -40,7 +40,7 @@ class CryptoModelTrainer:
             fast_executemany=True
         )
         
-        self.sequence_length = 10  # Number of time steps to look back
+        self.sequence_length = 3  # Changed from 10 to 3 to match available data
         
         # Setup logging
         os.makedirs('logs', exist_ok=True)
@@ -88,7 +88,7 @@ class CryptoModelTrainer:
     def prepare_sequences(self, data):
         """Prepare sequences for LSTM"""
         # Fill missing values with forward fill then backward fill
-        data = data.fillna(method='ffill').fillna(method='bfill')
+        data = data.ffill().bfill()
         
         features = ['current_price', 'market_cap', 'total_volume', 'price_change_24h',
                    'sentiment_votes_up', 'sentiment_votes_down', 'public_interest_score']
@@ -179,19 +179,21 @@ class CryptoModelTrainer:
         """Train model for a specific cryptocurrency"""
         try:
             logging.info(f"Starting training for {crypto_id}")
-            print(f"Starting training for {crypto_id}")  # Added console output
+            print(f"Starting training for {crypto_id}")
             
             # Get and prepare data
             data = self.get_training_data(crypto_id)
-            if len(data) < 100:
+            
+            # Reduce minimum data requirement to match what we have
+            if len(data) < 5:  # Changed to 5 since that's our maximum
                 logging.warning(f"Insufficient data for {crypto_id} (only {len(data)} samples)")
-                print(f"Skipping {crypto_id} - insufficient data")  # Added console output
+                print(f"Skipping {crypto_id} - insufficient data ({len(data)} samples)")
                 return False
                 
-            print(f"Got {len(data)} samples for {crypto_id}")  # Added console output
+            print(f"Got {len(data)} samples for {crypto_id}")
             
             X, y_24h, y_48h, y_3d, y_7d = self.prepare_sequences(data)
-            print(f"Prepared {len(X)} sequences")  # Added console output
+            print(f"Prepared {len(X)} sequences")
             
             # Scale features
             X_scaled = self.scaler.fit_transform(X.reshape(-1, X.shape[-1])).reshape(X.shape)
@@ -199,15 +201,27 @@ class CryptoModelTrainer:
             
             # Build and train model
             model = self.build_model((X.shape[1], X.shape[2]))
-            print(f"Training model for {crypto_id}...")  # Added console output
+            print(f"Training model for {crypto_id}...")
             
             history = model.fit(
                 X_scaled, y,
                 epochs=50,
                 batch_size=32,
                 validation_split=0.2,
-                verbose=1  # Changed to 1 for progress output
+                verbose=1
             )
+            
+            # Save model with explicit error handling
+            try:
+                model_path = f'models/{crypto_id}_{self.model_version}.h5'
+                print(f"Attempting to save model to {model_path}")  # Debug print
+                model.save(model_path)
+                print(f"Successfully saved model to {model_path}")
+                
+            except Exception as save_error:
+                print(f"Error saving model for {crypto_id}: {str(save_error)}")
+                logging.error(f"Error saving model for {crypto_id}: {str(save_error)}")
+                return False
             
             # Calculate performance metrics
             mae_scores = [
@@ -242,12 +256,18 @@ class CryptoModelTrainer:
 
     def train_all_models(self):
         """Train models for all cryptocurrencies"""
-        # Use SQLAlchemy engine instead of cursor
         df = pd.read_sql("SELECT id FROM coingecko_crypto_master", self.engine)
         crypto_ids = df['id'].tolist()
         
-        for crypto_id in crypto_ids:
-            self.train_model(crypto_id)
+        print(f"Starting training for {len(crypto_ids)} cryptocurrencies")
+        successful = 0
+        
+        for idx, crypto_id in enumerate(crypto_ids, 1):
+            print(f"\nProgress: {idx}/{len(crypto_ids)} ({(idx/len(crypto_ids)*100):.1f}%)")
+            if self.train_model(crypto_id):
+                successful += 1
+        
+        print(f"\nTraining completed. Successfully trained {successful}/{len(crypto_ids)} models")
 
 if __name__ == "__main__":
     trainer = CryptoModelTrainer()

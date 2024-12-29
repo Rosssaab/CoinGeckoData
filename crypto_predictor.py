@@ -59,9 +59,8 @@ class CryptoPredictor:
                    'sentiment_votes_up', 'sentiment_votes_down', 'public_interest_score']
                    
         X = data[features].values
-        # Fit and transform in one go, no need for saved scaler
-        X_scaled = self.scaler.fit_transform(X)
-        return X_scaled.reshape(1, len(data), len(features))
+        # Reshape for LSTM input
+        return X.reshape(1, len(data), len(features))
         
     def save_prediction(self, crypto_id, predictions, confidence, model_version):
         """Save predictions to database"""
@@ -98,21 +97,22 @@ class CryptoPredictor:
         """Make predictions for all cryptocurrencies"""
         cursor = self.conn.cursor()
         cursor.execute("""
-            SELECT id 
+            SELECT id, symbol, name 
             FROM coingecko_crypto_master 
             WHERE id IN (
                 SELECT DISTINCT crypto_id 
                 FROM coingecko_crypto_daily_data
             )
+            ORDER BY market_cap DESC  -- Prioritize larger cryptocurrencies
         """)
-        crypto_ids = [row[0] for row in cursor.fetchall()]
+        crypto_ids = cursor.fetchall()
         
-        for crypto_id in crypto_ids:
+        for crypto_id, symbol, name in crypto_ids:
             try:
                 # Find latest model
                 model_files = glob.glob(f'models/{crypto_id}_LSTM_v1_*.h5')
                 if not model_files:
-                    logging.warning(f"No model found for {crypto_id}")
+                    logging.warning(f"No model found for {name} ({crypto_id})")
                     continue
                     
                 latest_model_file = max(model_files)
@@ -122,28 +122,43 @@ class CryptoPredictor:
                 # Get and prepare data
                 data = self.get_latest_data(crypto_id)
                 if len(data) < self.sequence_length:
-                    logging.warning(f"Insufficient data for {crypto_id}")
+                    logging.warning(f"Insufficient data for {name} ({crypto_id})")
                     continue
                     
                 X = self.prepare_data(data)
                 
                 # Make predictions
-                predictions = model.predict(X)[0]
+                predictions = model.predict(X)[0]  # Returns [24h, 48h, 3d, 7d] predictions
                 
-                # Calculate confidence score based on recent prediction accuracy
-                current_price = data['current_price'].iloc[-1]
-                confidence = 100 * (1 - np.std(predictions) / current_price)
-                confidence = max(min(confidence, 100), 0)  # Clip between 0 and 100
+                # Calculate confidence score based on model performance
+                query = """
+                    SELECT mae_24h, mae_48h, mae_3d, mae_7d
+                    FROM coingecko_model_performance
+                    WHERE crypto_id = ? AND model_version = ?
+                    ORDER BY training_date DESC
+                    LIMIT 1
+                """
+                perf_df = pd.read_sql(query, self.conn, params=[crypto_id, model_version])
                 
-                # Scale predictions back to actual prices
-                predictions = predictions * current_price
+                if not perf_df.empty:
+                    mae_scores = perf_df.iloc[0]
+                    current_price = data['current_price'].iloc[-1]
+                    confidence = 100 * (1 - np.mean([
+                        mae_scores['mae_24h'],
+                        mae_scores['mae_48h'],
+                        mae_scores['mae_3d'],
+                        mae_scores['mae_7d']
+                    ]) / current_price)
+                    confidence = max(min(confidence, 100), 0)  # Clip between 0 and 100
+                else:
+                    confidence = 50  # Default confidence if no performance metrics
                 
                 # Save predictions
                 self.save_prediction(crypto_id, predictions, confidence, model_version)
-                logging.info(f"Successfully made predictions for {crypto_id}")
+                logging.info(f"Successfully made predictions for {name} ({crypto_id})")
                 
             except Exception as e:
-                logging.error(f"Error making predictions for {crypto_id}: {str(e)}")
+                logging.error(f"Error making predictions for {name} ({crypto_id}): {str(e)}")
                 continue
 
 if __name__ == "__main__":
