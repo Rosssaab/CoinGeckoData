@@ -212,6 +212,14 @@ class CoinGeckoDataLoader:
         """Update daily price data for coins"""
         try:
             self.log("Fetching daily price data from CoinGecko...")
+            # First get trending coins
+            trending_response = requests.get(f"{self.base_url}/search/trending")
+            trending_coins = set()
+            if trending_response.status_code == 200:
+                trending_data = trending_response.json()
+                trending_coins = {coin['item']['id'] for coin in trending_data.get('coins', [])}
+
+            # Then get regular market data
             response = requests.get(f"{self.base_url}/coins/markets", params={
                 'vs_currency': 'usd',
                 'order': 'market_cap_desc',
@@ -238,27 +246,30 @@ class CoinGeckoDataLoader:
                 
                 for coin in coins:
                     try:
+                        # Set is_trending based on whether coin is in trending list
+                        is_trending = 1 if coin['id'] in trending_coins else 0
+                        
                         self.cursor.execute("""
                             INSERT INTO coingecko_crypto_daily_data (
                                 crypto_id, 
-                                price_date,  -- This will now store both date and time
+                                price_date,
                                 current_price, 
                                 market_cap,
                                 total_volume, 
                                 price_change_24h, 
                                 market_cap_rank,
-                                is_trending, 
+                                is_trending,
                                 created_at
                             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                         """,
                         coin['id'],
-                        current_time,  # Use the same timestamp for all coins in this batch
+                        current_time,
                         coin.get('current_price'),
                         coin.get('market_cap'),
                         coin.get('total_volume'),
-                        coin.get('price_change_percentage_24h'),  # Note: changed to get correct field
+                        coin.get('price_change_percentage_24h'),
                         coin.get('market_cap_rank'),
-                        coin.get('is_trending', False),
+                        is_trending,  # Use our trending flag
                         current_time)
                         
                         if self.cursor.rowcount > 0:

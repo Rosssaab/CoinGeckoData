@@ -117,8 +117,12 @@ def get_top_100_crypto():
                         total_volume,
                         is_trending,
                         price_date,
-                        ROW_NUMBER() OVER (PARTITION BY crypto_id ORDER BY price_date DESC) as rn
+                        ROW_NUMBER() OVER (
+                            PARTITION BY crypto_id, CAST(price_date AS DATE) 
+                            ORDER BY price_date DESC, current_price DESC
+                        ) as rn
                     FROM coingecko_crypto_daily_data
+                    WHERE CAST(price_date AS DATE) = CAST(GETDATE() AS DATE)
                 )
                 SELECT 
                     m.id,
@@ -144,7 +148,6 @@ def get_top_100_crypto():
             
             for row in cursor.fetchall():
                 crypto = dict(zip(columns, row))
-                # Construct image URL from stored ID and filename
                 crypto['image'] = f"https://assets.coingecko.com/coins/images/{crypto['image_id']}/thumb/{crypto['image_filename']}"
                 results.append(crypto)
             

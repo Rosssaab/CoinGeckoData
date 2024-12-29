@@ -1,0 +1,19 @@
+[2024-12-28 21:58:39] 
+=== Starting Data Collection Process ===
+[2024-12-28 21:58:39] Time: 2024-12-28 21:58:39.530232
+[2024-12-28 21:58:39] 
+=== Checking Data Status ===
+[2024-12-28 21:58:39] Current date: 2024-12-28
+[2024-12-28 21:58:39] Price data status: NEEDS UPDATE
+[2024-12-28 21:58:39]   - Latest date: 2024-12-28
+[2024-12-28 21:58:39]   - Today's records: 100
+[2024-12-28 21:58:39] Sentiment data status: NEEDS UPDATE
+[2024-12-28 21:58:39]   - Latest date: 2024-12-28
+[2024-12-28 21:58:39]   - Today's records: 100
+[2024-12-28 21:58:39] ===========================
+
+[2024-12-28 21:58:39] 
+--- Updating Master Data ---
+[2024-12-28 21:58:39] 
+ERROR in main run: 'CoinGeckoDataLoader' object has no attribute 'update_master_data'
+Error: Script failed with code 1 - 28/12/2024 21:58:39.56 
