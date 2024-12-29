@@ -142,60 +142,7 @@
         </tbody>
     </table>
 
-    <!-- Add modal -->
-    <div id="cryptoModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2 id="modalTitle"></h2>
-            <div id="modalContent">
-                <div style="display: flex; margin-bottom: 20px;">
-                    <img id="modalImage" style="width: 64px; height: 64px; margin-right: 20px;">
-                    <div>
-                        <p>Current Price: <span id="modalPrice"></span></p>
-                        <p>24h Change: <span id="modal24hChange"></span></p>
-                        <p>Market Cap: <span id="modalMarketCap"></span></p>
-                        <p>Volume (24h): <span id="modalVolume"></span></p>
-                    </div>
-                </div>
-                <h3>Price Predictions</h3>
-                <table style="width: 100%;">
-                    <tr>
-                        <th>Timeframe</th>
-                        <th>Predicted Price</th>
-                        <th>Change</th>
-                    </tr>
-                    <tr>
-                        <td>24 Hours</td>
-                        <td id="pred24h"></td>
-                        <td id="pred24hChange"></td>
-                    </tr>
-                    <tr>
-                        <td>7 Days</td>
-                        <td id="pred7d"></td>
-                        <td id="pred7dChange"></td>
-                    </tr>
-                </table>
-            </div>
-        </div>
-    </div>
-
     <script>
-        // Add class to make rows clickable
-        document.querySelectorAll('tbody tr').forEach(row => {
-            row.classList.add('clickable');
-        });
-
-        // Get modal elements
-        const modal = document.getElementById('cryptoModal');
-        const closeBtn = document.getElementsByClassName('close')[0];
-
-        // Close modal when clicking X or outside
-        closeBtn.onclick = () => modal.style.display = 'none';
-        window.onclick = (event) => {
-            if (event.target == modal) modal.style.display = 'none';
-        }
-
-        // Handle row clicks
         document.querySelectorAll('tbody tr').forEach(row => {
             row.addEventListener('click', async () => {
                 try {
@@ -209,34 +156,22 @@
                     const data = await response.json();
                     console.log('Received data:', data); // Debug line
                     
-                    // Update modal content
-                    document.getElementById('modalTitle').textContent = `${data.name} (${data.symbol.toUpperCase()})`;
-                    document.getElementById('modalImage').src = data.image_url;
-                    document.getElementById('modalPrice').textContent = `$${data.latest_price.toFixed(2)}`;
-                    document.getElementById('modal24hChange').textContent = `${data.price_change_24h.toFixed(2)}%`;
-                    document.getElementById('modalMarketCap').textContent = `$${data.market_cap.toLocaleString()}`;
-                    document.getElementById('modalVolume').textContent = `$${data.total_volume.toLocaleString()}`;
+                    // Use the shared showCryptoModal function
+                    showCryptoModal(data);
                     
-                    // Calculate prediction changes
-                    const pred24hChange = ((data.pred_24h - data.latest_price) / data.latest_price * 100);
-                    const pred7dChange = ((data.pred_7d - data.latest_price) / data.latest_price * 100);
-                    
-                    // Update predictions
-                    document.getElementById('pred24h').textContent = `$${data.pred_24h.toFixed(2)}`;
-                    document.getElementById('pred24hChange').textContent = `${pred24hChange.toFixed(2)}%`;
-                    document.getElementById('pred24hChange').className = pred24hChange >= 0 ? 'prediction-up' : 'prediction-down';
-                    
-                    document.getElementById('pred7d').textContent = `$${data.pred_7d.toFixed(2)}`;
-                    document.getElementById('pred7dChange').textContent = `${pred7dChange.toFixed(2)}%`;
-                    document.getElementById('pred7dChange').className = pred7dChange >= 0 ? 'prediction-up' : 'prediction-down';
-                    
-                    // Show modal
-                    modal.style.display = 'block';
                 } catch (error) {
                     console.error('Error fetching crypto details:', error);
                 }
             });
         });
+
+        // Sort functionality (if you have it)
+        function sortTable(n) {
+            // ... existing sort code ...
+        }
     </script>
+
+    <!-- Include the modal template -->
+    {% include 'crypto_modal.html' %}
 </body>
 </html> 

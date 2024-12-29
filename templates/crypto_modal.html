@@ -1,8 +1,12 @@
 <div id="cryptoModal" class="modal">
     <div class="modal-content">
-        <span class="close">&times;</span>
-        <h2 id="modalTitle"></h2>
-        <div id="modalContent">
+        <div class="modal-header">
+            <span class="close">&times;</span>
+            <h2 id="modalTitle" style="margin: 0;"></h2>
+        </div>
+        
+        <!-- Basic Info Section -->
+        <div class="modal-section">
             <div style="display: flex; margin-bottom: 20px;">
                 <img id="modalImage" style="width: 64px; height: 64px; margin-right: 20px;">
                 <div>
@@ -12,51 +16,294 @@
                     <p>Volume (24h): <span id="modalVolume"></span></p>
                 </div>
             </div>
+        </div>
+
+        <!-- Price Changes Section -->
+        <div class="modal-section">
+            <h3>Price Changes</h3>
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <label>7d Change:</label>
+                    <span id="change7d"></span>
+                </div>
+                <div class="metric-item">
+                    <label>14d Change:</label>
+                    <span id="change14d"></span>
+                </div>
+                <div class="metric-item">
+                    <label>30d Change:</label>
+                    <span id="change30d"></span>
+                </div>
+                <div class="metric-item">
+                    <label>Market Cap Change (24h):</label>
+                    <span id="marketCapChange"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Social Metrics Section -->
+        <div class="modal-section">
+            <h3>Social & Sentiment Metrics</h3>
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <label>Sentiment Score:</label>
+                    <span id="sentimentScore"></span>
+                </div>
+                <div class="metric-item">
+                    <label>Public Interest:</label>
+                    <span id="publicInterest"></span>
+                </div>
+                <div class="metric-item">
+                    <label>Total Votes:</label>
+                    <span id="totalVotes"></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Predictions Section -->
+        <div class="modal-section">
             <h3>Price Predictions</h3>
-            <table style="width: 100%;">
+            <table class="prediction-table">
                 <tr>
                     <th>Timeframe</th>
                     <th>Predicted Price</th>
                     <th>Change</th>
+                    <th>Confidence</th>
                 </tr>
                 <tr>
                     <td>24 Hours</td>
                     <td id="pred24h"></td>
                     <td id="pred24hChange"></td>
+                    <td id="pred24hConfidence"></td>
+                </tr>
+                <tr>
+                    <td>48 Hours</td>
+                    <td id="pred48h"></td>
+                    <td id="pred48hChange"></td>
+                    <td id="pred48hConfidence"></td>
+                </tr>
+                <tr>
+                    <td>3 Days</td>
+                    <td id="pred3d"></td>
+                    <td id="pred3dChange"></td>
+                    <td id="pred3dConfidence"></td>
                 </tr>
                 <tr>
                     <td>7 Days</td>
                     <td id="pred7d"></td>
                     <td id="pred7dChange"></td>
+                    <td id="pred7dConfidence"></td>
                 </tr>
             </table>
+        </div>
+
+        <!-- Model Info Section -->
+        <div class="modal-section">
+            <h3>Model Information</h3>
+            <div class="metrics-grid">
+                <div class="metric-item">
+                    <label>Model Version:</label>
+                    <span id="modelVersion"></span>
+                </div>
+                <div class="metric-item">
+                    <label>24h Accuracy:</label>
+                    <span id="accuracy24h"></span>
+                </div>
+                <div class="metric-item">
+                    <label>7d Accuracy:</label>
+                    <span id="accuracy7d"></span>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0,0,0,0.4);
+        overflow-y: auto; /* Enable vertical scrolling */
+    }
+
+    .modal-content {
+        background-color: #fefefe;
+        margin: 5% auto; /* Reduced from 15% to 5% to show more content */
+        padding: 20px;
+        border: 1px solid #888;
+        width: 90%;
+        max-width: 800px;
+        border-radius: 5px;
+        max-height: 85vh; /* Limit height to 85% of viewport height */
+        overflow-y: auto; /* Enable scrolling within modal */
+        font-size: 0.9em; /* Slightly smaller text */
+    }
+
+    .modal-section {
+        margin-bottom: 15px; /* Reduced margin */
+        padding: 10px; /* Reduced padding */
+        border-radius: 5px;
+        background-color: #f8f9fa;
+    }
+
+    .metrics-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* Responsive grid */
+        gap: 10px; /* Reduced gap */
+        margin-top: 8px;
+    }
+
+    .metric-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 6px; /* Reduced padding */
+        background-color: white;
+        border-radius: 4px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        font-size: 0.85em; /* Even smaller text for metrics */
+    }
+
+    .prediction-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 8px;
+        font-size: 0.85em; /* Smaller text for table */
+    }
+
+    .prediction-table th,
+    .prediction-table td {
+        padding: 6px; /* Reduced padding */
+        text-align: left;
+        border-bottom: 1px solid #ddd;
+    }
+
+    h3 {
+        margin: 8px 0; /* Reduced margins */
+        font-size: 1em; /* Smaller headers */
+    }
+
+    /* Make modal draggable */
+    .modal-content {
+        position: relative;
+        cursor: move;
+    }
+
+    .modal-header {
+        padding: 8px;
+        cursor: move;
+        background-color: #f1f1f1;
+        border-bottom: 1px solid #ddd;
+        margin: -20px -20px 15px -20px;
+        border-radius: 5px 5px 0 0;
+    }
+
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 24px; /* Slightly smaller close button */
+        font-weight: bold;
+        cursor: pointer;
+        margin-top: -5px;
+    }
+
+    .price-up { color: green; }
+    .price-down { color: red; }
+</style>
+
 <script>
+function dragElement(elmnt) {
+    var pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
+    if (document.getElementById(elmnt.id + "header")) {
+        document.getElementById(elmnt.id + "header").onmousedown = dragMouseDown;
+    } else {
+        elmnt.onmousedown = dragMouseDown;
+    }
+
+    function dragMouseDown(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        document.onmouseup = closeDragElement;
+        document.onmousemove = elementDrag;
+    }
+
+    function elementDrag(e) {
+        e = e || window.event;
+        e.preventDefault();
+        pos1 = pos3 - e.clientX;
+        pos2 = pos4 - e.clientY;
+        pos3 = e.clientX;
+        pos4 = e.clientY;
+        elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+        elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+    }
+
+    function closeDragElement() {
+        document.onmouseup = null;
+        document.onmousemove = null;
+    }
+}
+
 function showCryptoModal(data) {
+    console.log('Showing modal with data:', data); // Debug line
     const modal = document.getElementById('cryptoModal');
     
+    // Basic Info
     document.getElementById('modalTitle').textContent = `${data.name} (${data.symbol.toUpperCase()})`;
     document.getElementById('modalImage').src = data.image_url;
-    document.getElementById('modalPrice').textContent = `$${data.latest_price.toFixed(2)}`;
-    document.getElementById('modal24hChange').textContent = `${data.price_change_24h.toFixed(2)}%`;
-    document.getElementById('modalMarketCap').textContent = `$${data.market_cap.toLocaleString()}`;
-    document.getElementById('modalVolume').textContent = `$${data.total_volume.toLocaleString()}`;
+    document.getElementById('modalPrice').textContent = `$${(data.latest_price || 0).toFixed(2)}`;
+    document.getElementById('modal24hChange').textContent = `${(data.price_change_24h || 0).toFixed(2)}%`;
+    document.getElementById('modal24hChange').className = (data.price_change_24h || 0) >= 0 ? 'price-up' : 'price-down';
+    document.getElementById('modalMarketCap').textContent = `$${(data.market_cap || 0).toLocaleString()}`;
+    document.getElementById('modalVolume').textContent = `$${(data.total_volume || 0).toLocaleString()}`;
     
-    const pred24hChange = ((data.pred_24h - data.latest_price) / data.latest_price * 100);
-    const pred7dChange = ((data.pred_7d - data.latest_price) / data.latest_price * 100);
+    // Price Changes
+    document.getElementById('change7d').textContent = `${(data.price_change_7d || 0).toFixed(2)}%`;
+    document.getElementById('change14d').textContent = `${(data.price_change_14d || 0).toFixed(2)}%`;
+    document.getElementById('change30d').textContent = `${(data.price_change_30d || 0).toFixed(2)}%`;
+    document.getElementById('marketCapChange').textContent = `${(data.market_cap_change_24h || 0).toFixed(2)}%`;
     
-    document.getElementById('pred24h').textContent = `$${data.pred_24h.toFixed(2)}`;
-    document.getElementById('pred24hChange').textContent = `${pred24hChange.toFixed(2)}%`;
-    document.getElementById('pred24hChange').className = pred24hChange >= 0 ? 'prediction-up' : 'prediction-down';
+    // Social Metrics
+    document.getElementById('sentimentScore').textContent = data.sentiment_score || 'N/A';
+    document.getElementById('publicInterest').textContent = data.public_interest_score || 'N/A';
+    document.getElementById('totalVotes').textContent = data.total_votes || 0;
     
-    document.getElementById('pred7d').textContent = `$${data.pred_7d.toFixed(2)}`;
-    document.getElementById('pred7dChange').textContent = `${pred7dChange.toFixed(2)}%`;
-    document.getElementById('pred7dChange').className = pred7dChange >= 0 ? 'prediction-up' : 'prediction-down';
+    // Predictions
+    updatePrediction('24h', data.pred_24h, data.latest_price, data.confidence_score);
+    updatePrediction('48h', data.pred_48h, data.latest_price, data.confidence_score);
+    updatePrediction('3d', data.pred_3d, data.latest_price, data.confidence_score);
+    updatePrediction('7d', data.pred_7d, data.latest_price, data.confidence_score);
+    
+    // Model Info
+    document.getElementById('modelVersion').textContent = data.model_version || 'N/A';
+    document.getElementById('accuracy24h').textContent = data.model_accuracy_24h ? `${data.model_accuracy_24h.toFixed(1)}%` : 'N/A';
+    document.getElementById('accuracy7d').textContent = data.model_accuracy_7d ? `${data.model_accuracy_7d.toFixed(1)}%` : 'N/A';
     
     modal.style.display = 'block';
+    
+    // Make modal draggable
+    const modalContent = document.querySelector('.modal-content');
+    dragElement(modalContent);
+}
+
+function updatePrediction(timeframe, predPrice, currentPrice, confidence) {
+    if (predPrice && currentPrice) {
+        const change = ((predPrice - currentPrice) / currentPrice * 100);
+        document.getElementById(`pred${timeframe}`).textContent = `$${predPrice.toFixed(2)}`;
+        document.getElementById(`pred${timeframe}Change`).textContent = `${change.toFixed(2)}%`;
+        document.getElementById(`pred${timeframe}Change`).className = change >= 0 ? 'price-up' : 'price-down';
+        document.getElementById(`pred${timeframe}Confidence`).textContent = `${(confidence || 0).toFixed(1)}%`;
+    } else {
+        document.getElementById(`pred${timeframe}`).textContent = 'N/A';
+        document.getElementById(`pred${timeframe}Change`).textContent = 'N/A';
+        document.getElementById(`pred${timeframe}Confidence`).textContent = 'N/A';
+    }
 }
 
 // Close modal when clicking X or outside
