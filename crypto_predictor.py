@@ -17,7 +17,7 @@ from config import DB_CONNECTION_STRING
 class CryptoPredictor:
     def __init__(self):
         self.conn = pyodbc.connect(DB_CONNECTION_STRING)
-        self.sequence_length = 10
+        self.sequence_length = 5  # Match the trainer's sequence length
         self.scaler = MinMaxScaler()  # Create a new scaler instance
         
         # Create directories if they don't exist

@@ -1,0 +1,36 @@
+# Configuration files
+config.py
+*.config
+*.env
+
+# Model files and directories
+models/
+*.keras
+*.pkl
+*.h5
+*.model
+
+# Python cache files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment directories
+venv/
+env/
+.env/
