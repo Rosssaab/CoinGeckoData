@@ -64,13 +64,85 @@
 
     <!-- Modal -->
     <div class="modal fade" id="coinDetailsModal" tabindex="-1" role="dialog">
-        <!-- ... modal content ... -->
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="d-flex align-items-center">
+                        <img id="modalCryptoImage" width="32" height="32" class="mr-3" alt="">
+                        <h5 class="modal-title mb-0"></h5>
+                    </div>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Price Information</h6>
+                            <p>Current Price: <span id="modalPrice"></span></p>
+                            <p>24h Change: <span id="modal24hChange"></span></p>
+                            <p>Market Cap: <span id="modalMarketCap"></span></p>
+                            <p>Volume (24h): <span id="modalVolume"></span></p>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Sentiment Analysis</h6>
+                            <p>Sentiment Up: <span id="modalSentimentUp"></span></p>
+                            <p>Sentiment Down: <span id="modalSentimentDown"></span></p>
+                            <p>Interest Score: <span id="modalInterestScore"></span></p>
+                            <p>Twitter Sentiment: <span id="modalTwitterSentiment"></span></p>
+                            <p>Reddit Sentiment: <span id="modalRedditSentiment"></span></p>
+                            <p>News Sentiment: <span id="modalNewsSentiment"></span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
     
-    <!-- ... your JavaScript code ... -->
+    <script>
+    $(document).ready(function() {
+        $('.crypto-row').click(function() {
+            const cryptoId = $(this).data('crypto-id');
+            
+            // Show loading state
+            $('#coinDetailsModal').modal('show');
+            $('.modal-title').text('Loading...');
+            
+            // Fetch coin details
+            fetch(`/get_coin_details/${cryptoId}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Update modal title and image
+                    $('#modalCryptoImage').attr('src', data.image_url).attr('alt', data.symbol);
+                    $('.modal-title').text(`${data.name} Details`);
+                    
+                    // Update the rest of modal content
+                    $('#modalPrice').text(`$${data.current_price.toLocaleString()}`);
+                    $('#modal24hChange').text(`${data.price_change_24h.toFixed(2)}%`)
+                        .removeClass('text-success text-danger')
+                        .addClass(data.price_change_24h >= 0 ? 'text-success' : 'text-danger');
+                    $('#modalMarketCap').text(`$${data.market_cap.toLocaleString()}`);
+                    $('#modalVolume').text(`$${data.volume.toLocaleString()}`);
+                    
+                    // Update sentiment data
+                    $('#modalSentimentUp').text(data.sentiment_up);
+                    $('#modalSentimentDown').text(data.sentiment_down);
+                    $('#modalInterestScore').text(data.interest_score);
+                    $('#modalTwitterSentiment').text(data.twitter_sentiment.toFixed(2));
+                    $('#modalRedditSentiment').text(data.reddit_sentiment.toFixed(2));
+                    $('#modalNewsSentiment').text(data.news_sentiment.toFixed(2));
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    $('.modal-title').text('Error loading data');
+                    $('.modal-body').html('<p class="text-danger">Failed to load coin details.</p>');
+                });
+        });
+    });
+    </script>
 </body>
 </html> 

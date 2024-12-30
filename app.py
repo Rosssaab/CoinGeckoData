@@ -60,6 +60,8 @@ def get_coin_details(crypto_id):
     try:
         query = """
         SELECT TOP 1
+            m.name,
+            m.symbol,
             d.crypto_id,
             d.current_price,
             d.price_change_24h,
@@ -72,6 +74,7 @@ def get_coin_details(crypto_id):
             COALESCE(s.reddit_sentiment, 0) as reddit_sentiment,
             COALESCE(s.news_sentiment, 0) as news_sentiment
         FROM coingecko_crypto_daily_data d
+        JOIN coingecko_crypto_master m ON d.crypto_id = m.id
         LEFT JOIN coingecko_crypto_sentiment s 
             ON d.crypto_id = s.crypto_id 
             AND CAST(d.price_date AS DATE) = CAST(s.metric_date AS DATE)
@@ -83,7 +86,12 @@ def get_coin_details(crypto_id):
             result = connection.execute(text(query), {"crypto_id": crypto_id}).fetchone()
             
             if result:
+                image_url = f"https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/{result.symbol.lower()}.png"
+                
                 return jsonify({
+                    'name': result.name,
+                    'symbol': result.symbol,
+                    'image_url': image_url,
                     'crypto_id': result.crypto_id,
                     'current_price': float(result.current_price),
                     'price_change_24h': float(result.price_change_24h) if result.price_change_24h else 0,
