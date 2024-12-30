@@ -189,7 +189,7 @@ class CoinGeckoDataLoader:
                                     except ValueError:
                                         continue
                         
-                        self.cursor.execute("""
+                        query = """
                             MERGE coingecko_crypto_master AS target
                             USING (SELECT ? as id) AS source
                             ON target.id = source.id
@@ -200,23 +200,31 @@ class CoinGeckoDataLoader:
                                     image_id = ?,
                                     image_filename = ?,
                                     market_cap_rank = ?,
+                                    image_url = ?,
                                     created_at = GETDATE()
                             WHEN NOT MATCHED THEN
-                                INSERT (id, symbol, name, image_id, image_filename, market_cap_rank, created_at)
-                                VALUES (?, ?, ?, ?, ?, ?, GETDATE());
-                        """,
-                        coin['id'], 
-                        coin['symbol'], 
-                        coin['name'],
-                        image_id,
-                        image_filename,
-                        coin.get('market_cap_rank'),
-                        coin['id'],
-                        coin['symbol'],
-                        coin['name'],
-                        image_id,
-                        image_filename,
-                        coin.get('market_cap_rank'))
+                                INSERT (id, symbol, name, image_id, image_filename, market_cap_rank, image_url, created_at)
+                                VALUES (?, ?, ?, ?, ?, ?, ?, GETDATE());
+                        """
+                        
+                        # Generate image URL using CoinGecko's pattern
+                        image_url = f"https://assets.coingecko.com/coins/images/{image_id}/thumb/{image_filename}"
+                        
+                        self.cursor.execute(query,
+                            coin['id'], 
+                            coin['symbol'], 
+                            coin['name'],
+                            image_id,
+                            image_filename,
+                            coin.get('market_cap_rank'),
+                            image_url,  # Add for UPDATE
+                            coin['id'],
+                            coin['symbol'],
+                            coin['name'],
+                            image_id,
+                            image_filename,
+                            coin.get('market_cap_rank'),
+                            image_url)  # Add for INSERT
                         
                         if self.cursor.rowcount > 0:
                             updated_count += 1
@@ -572,4 +580,6 @@ def main():
     loader.run()
 
 if __name__ == "__main__":
-    main() 
+    loader = CoinGeckoDataLoader()
+    loader.update_master_data()
+    print("Data update completed!") 
