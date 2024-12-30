@@ -311,25 +311,24 @@ def past_predictions():
         print(traceback.format_exc())
         return str(e), 500
 
-@app.route('/api/coin_history/<coin_id>')
-def coin_history(coin_id):
+@app.route('/api/coin_history/<crypto_id>')
+def coin_history(crypto_id):
     try:
-        # Query last 7 days of price data from correct table
+        # Remove the TOP 7 limit to get all history
         query = """
-        SELECT TOP 7 price_date, current_price 
+        SELECT price_date, current_price 
         FROM coingecko_crypto_daily_data 
-        WHERE crypto_id = :coin_id 
+        WHERE crypto_id = :crypto_id 
         ORDER BY price_date DESC
         """
         
         with engine.connect() as connection:
-            result = connection.execute(text(query), {"coin_id": coin_id}).fetchall()
+            result = connection.execute(text(query), {"crypto_id": crypto_id}).fetchall()
             
             if not result:
-                print(f"No data found for coin: {coin_id}")
                 return jsonify({'error': 'No data found'}), 404
                 
-            dates = [row[0].strftime('%Y-%m-%d') for row in result][::-1]
+            dates = [row[0].strftime('%d-%m-%Y %H:%M:%S') for row in result][::-1]
             prices = [float(row[1]) for row in result][::-1]
             
             return jsonify({

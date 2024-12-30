@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h2>Trending Cryptocurrencies</h2>
+<h2>Past Predictions Analysis</h2>
 
 <div class="table-responsive">
     <table class="table table-hover">
@@ -9,28 +9,28 @@
             <tr>
                 <th>#</th>
                 <th>Name</th>
-                <th>Price</th>
-                <th>24h Change</th>
-                <th>Market Cap</th>
-                <th>Volume (24h)</th>
-                <th>Last Updated</th>
+                <th>Prediction Date</th>
+                <th>Predicted Price</th>
+                <th>Actual Price</th>
+                <th>Accuracy</th>
             </tr>
         </thead>
         <tbody>
-            {% for crypto in cryptocurrencies %}
-            <tr class="crypto-row" data-crypto-id="{{ crypto.id }}">
-                <td>{{ crypto.rank }}</td>
+            {% for prediction in past_predictions %}
+            <tr class="crypto-row" 
+                data-crypto-id="{{ prediction.id }}"
+                data-prediction-date="{{ prediction.prediction_date.strftime('%Y-%m-%d') }}">
+                <td>{{ prediction.rank }}</td>
                 <td>
-                    <img src="{{ crypto.image_url }}" width="20" height="20" class="mr-2" alt="{{ crypto.symbol }}">
-                    {{ crypto.name }} ({{ crypto.symbol.upper() }})
+                    <img src="{{ prediction.image_url }}" width="20" height="20" class="mr-2" alt="{{ prediction.symbol }}">
+                    {{ prediction.name }} ({{ prediction.symbol.upper() }})
                 </td>
-                <td>${{ "{:,.2f}".format(crypto.current_price) }}</td>
-                <td class="{{ 'price-up' if crypto.price_change_24h > 0 else 'price-down' }}">
-                    {{ "{:+.2f}%".format(crypto.price_change_24h) }}
+                <td>{{ prediction.prediction_date.strftime('%d-%m-%Y') }}</td>
+                <td>${{ "{:,.2f}".format(prediction.predicted_price) }}</td>
+                <td>${{ "{:,.2f}".format(prediction.actual_price) }}</td>
+                <td class="{{ 'price-up' if prediction.accuracy >= 90 else 'price-down' }}">
+                    {{ "{:.1f}%".format(prediction.accuracy) }}
                 </td>
-                <td>${{ "{:,.0f}".format(crypto.market_cap) }}</td>
-                <td>${{ "{:,.0f}".format(crypto.total_volume) }}</td>
-                <td>{{ crypto.last_updated.strftime('%d-%m-%Y %H:%M:%S') }}</td>
             </tr>
             {% endfor %}
         </tbody>

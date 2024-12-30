@@ -2,7 +2,7 @@
 
 {% block content %}
 {% if predictions %}
-    <h2>Price Predictions made on {{ predictions[0].last_updated.strftime('%Y-%m-%d %H:%M:%S') }}</h2>
+    <h2>Price Predictions made on {{ predictions[0].last_updated.strftime('%d-%m-%Y %H:%M:%S') }}</h2>
 
     <div class="table-responsive">
         <table class="table table-hover">
@@ -77,25 +77,65 @@
     </div>
 {% endif %}
 
+<!-- Modal -->
+<div class="modal fade" id="coinDetailsModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="d-flex align-items-center">
+                    <img id="modalCryptoImage" width="32" height="32" class="mr-3" alt="">
+                    <h5 class="modal-title mb-0"></h5>
+                </div>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <!-- Price Chart Container -->
+                <div class="chart-container" style="position: relative; height:300px; width:100%">
+                    <canvas id="priceChart"></canvas>
+                </div>
+                <div class="slider-container px-3 mt-4">
+                    <div id="timeSlider"></div>
+                    <div class="d-flex justify-content-between mt-2">
+                        <small id="timeRangeStart" class="text-muted"></small>
+                        <small id="timeRangeEnd" class="text-muted"></small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <style>
-    .confidence-score {
-        font-size: 0.85em;
-        color: #666;
-        margin-top: 3px;
+    .price-up { color: #28a745; }
+    .price-down { color: #dc3545; }
+    .crypto-row { cursor: pointer; }
+    .chart-container { margin-top: 20px; }
+    .slider-container { 
+        margin: 0 20px 20px 20px;
+        padding: 0 15px;
     }
-    .text-muted {
+    .noUi-connect {
+        background: #2c3e50;
+    }
+    .noUi-handle {
+        border: 1px solid #2c3e50;
+        background: #2c3e50;
+        cursor: pointer;
+    }
+    .noUi-handle:before,
+    .noUi-handle:after {
+        background: #fff;
+    }
+    #timeRangeStart,
+    #timeRangeEnd {
+        font-size: 0.8rem;
         color: #6c757d;
-        font-style: italic;
-        margin-bottom: 5px;
-    }
-    .price-up {
-        color: #28a745;
-    }
-    .price-down {
-        color: #dc3545;
-    }
-    .table-responsive {
-        margin-top: 20px;
     }
 </style>
-{% endblock content %} 
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+{% endblock %} 
