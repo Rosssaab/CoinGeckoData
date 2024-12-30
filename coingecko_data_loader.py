@@ -3,6 +3,24 @@ import argparse
 import pyodbc
 from datetime import datetime
 import time
+from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
+from tweepy import Client as TwitterClient
+from config import (
+    # Database configs
+    DB_CONNECTION_STRING,
+    DB_SERVER,
+    DB_NAME,
+    DB_USER,
+    DB_PASSWORD,
+    
+    # API configs
+    TWITTER_BEARER_TOKEN,
+    NEWS_API_KEY,
+    NEWS_API_URL,
+    CRYPTOPANIC_API_KEY,
+    CRYPTOPANIC_BASE_URL
+)
+from sqlalchemy import create_engine, text
 
 class CoinGeckoDataLoader:
     def __init__(self, args):
@@ -16,6 +34,17 @@ class CoinGeckoDataLoader:
                                  r'Database=CryptoAiDb;'
                                  r'Trusted_Connection=yes;')
         self.cursor = self.conn.cursor()
+        
+        # Add SQLAlchemy engine initialization
+        self.connection_str = f'mssql+pyodbc://{DB_USER}:{DB_PASSWORD}@{DB_SERVER}/{DB_NAME}?driver=SQL+Server+Native+Client+11.0'
+        self.engine = create_engine(self.connection_str)
+        
+        # Add new API initializations
+        self.twitter = TwitterClient(bearer_token=TWITTER_BEARER_TOKEN)
+        self.analyzer = SentimentIntensityAnalyzer()
+        self.reddit_headers = {
+            'User-Agent': 'CryptoSentimentBot/1.0'
+        }
         
     def log(self, message):
         """Log a message with timestamp"""
@@ -289,71 +318,169 @@ class CoinGeckoDataLoader:
             self.log(f"Error in update_daily_data: {str(e)}")
 
     def update_sentiment_data(self):
-        """Update sentiment data for coins"""
+        """Enhanced sentiment collection including social media"""
         try:
-            self.log("Fetching sentiment data from CoinGecko...")
-            response = requests.get(f"{self.base_url}/coins/markets", params={
-                'vs_currency': 'usd',
-                'order': 'market_cap_desc',
-                'per_page': 100,
-                'page': 1,
-                'sparkline': False
-            })
+            self.log("Collecting enhanced sentiment data...")
+            coins = self.get_top_coins()
+            self.log(f"Processing {len(coins)} coins...")
             
-            if response.status_code == 429:
-                self.log("Rate limit hit - waiting 60 seconds...")
-                self.countdown(60)
-                response = requests.get(f"{self.base_url}/coins/markets", params={
-                    'vs_currency': 'usd',
-                    'order': 'market_cap_desc',
-                    'per_page': 100,
-                    'page': 1,
-                    'sparkline': False
-                })
-                
-            if response.status_code == 200:
-                coins = response.json()
-                updated_count = 0
-                current_time = datetime.now()
-                
-                for coin in coins:
-                    try:
-                        response = requests.get(f"{self.base_url}/coins/{coin['id']}")
-                        if response.status_code == 200:
-                            data = response.json()
-                            
-                            self.cursor.execute("""
-                                INSERT INTO coingecko_crypto_sentiment (
-                                    crypto_id,
-                                    metric_date,  -- This will now store both date and time
-                                    sentiment_votes_up,
-                                    sentiment_votes_down,
-                                    public_interest_score,
-                                    created_at
-                                ) VALUES (?, ?, ?, ?, ?, ?)
-                            """,
-                            coin['id'],
-                            current_time,
-                            data.get('sentiment_votes_up_percentage'),
-                            data.get('sentiment_votes_down_percentage'),
-                            data.get('public_interest_score'),
-                            current_time)
-                            
-                            if self.cursor.rowcount > 0:
-                                updated_count += 1
-                                
-                    except Exception as e:
-                        self.log(f"Error updating sentiment for {coin['id']}: {str(e)}")
-                        continue
-                        
-                self.conn.commit()
-                self.log(f"Updated sentiment data for {updated_count} coins")
-                
-            else:
-                self.log(f"Error fetching coin list: Status {response.status_code}")
+            for coin in coins:
+                try:
+                    self.log(f"\nProcessing {coin['id']}...")
+                    
+                    # Collect from multiple sources
+                    twitter_sentiment = self.collect_twitter_mentions(coin)
+                    self.log(f"Twitter mentions: {len(twitter_sentiment)}")
+                    
+                    reddit_sentiment = self.collect_reddit_mentions(coin)
+                    self.log(f"Reddit mentions: {len(reddit_sentiment)}")
+                    
+                    news_sentiment = self.collect_news_mentions(coin)
+                    self.log(f"News mentions: {len(news_sentiment)}")
+                    
+                    # Aggregate sentiment scores
+                    scores = self.aggregate_sentiment_scores(
+                        twitter_sentiment,
+                        reddit_sentiment,
+                        news_sentiment
+                    )
+                    
+                    self.log(f"Aggregated scores for {coin['id']}:")
+                    self.log(f"- Positive: {scores['positive']:.2f}%")
+                    self.log(f"- Negative: {scores['negative']:.2f}%")
+                    self.log(f"- Interest: {scores['interest_score']}")
+                    
+                    # Fixed SQL query with correct number of ? placeholders
+                    query = """
+                    INSERT INTO coingecko_crypto_sentiment (
+                        crypto_id,
+                        metric_date,
+                        sentiment_votes_up,
+                        sentiment_votes_down,
+                        public_interest_score,
+                        twitter_sentiment,
+                        reddit_sentiment,
+                        news_sentiment,
+                        created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """
+                    
+                    current_time = datetime.now()
+                    
+                    # Make sure we have exactly 9 parameters to match the 9 ? placeholders
+                    params = [
+                        coin['id'],                    # crypto_id
+                        current_time,                  # metric_date
+                        scores['positive'],            # sentiment_votes_up
+                        scores['negative'],            # sentiment_votes_down
+                        scores['interest_score'],      # public_interest_score
+                        scores['twitter_score'],       # twitter_sentiment
+                        scores['reddit_score'],        # reddit_sentiment
+                        scores['news_score'],          # news_sentiment
+                        current_time                   # created_at
+                    ]
+                    
+                    self.cursor.execute(query, params)
+                    self.conn.commit()
+                    self.log(f"Saved sentiment data for {coin['id']}")
+                    
+                    time.sleep(1)  # Rate limiting
+                    
+                except Exception as e:
+                    self.log(f"Error processing {coin['id']}: {str(e)}")
+                    import traceback
+                    self.log(f"Detailed error: {traceback.format_exc()}")
+                    continue
                 
         except Exception as e:
-            self.log(f"Error in update_sentiment_data: {str(e)}")
+            self.log(f"Error in sentiment update: {str(e)}")
+
+    def collect_twitter_mentions(self, coin):
+        """Collect Twitter mentions with rate limit handling"""
+        try:
+            self.log(f"Collecting Twitter mentions for {coin['id']}...")
+            
+            # Check if we've hit rate limit
+            if hasattr(self, 'twitter_reset_time'):
+                now = datetime.now()
+                if now < self.twitter_reset_time:
+                    wait_time = (self.twitter_reset_time - now).seconds
+                    self.log(f"Twitter rate limit hit. Waiting {wait_time} seconds...")
+                    time.sleep(wait_time)
+            
+            query = f"#{coin['symbol']} OR #{coin['name']} crypto"
+            response = self.twitter.search_recent_tweets(query=query, max_results=10)
+            
+            if hasattr(response, 'errors') and response.errors:
+                if any(error['code'] == 88 for error in response.errors):  # Rate limit error
+                    reset_time = datetime.fromtimestamp(int(response.meta['reset']))
+                    self.twitter_reset_time = reset_time
+                    self.log(f"Twitter rate limit hit. Reset at {reset_time}")
+                    return []
+                    
+            tweets = response.data or []
+            self.log(f"Found {len(tweets)} tweets for {coin['id']}")
+            
+            sentiments = []
+            for tweet in tweets:
+                sentiment = self.analyzer.polarity_scores(tweet.text)['compound']
+                sentiments.append(sentiment)
+                
+            return sentiments
+            
+        except Exception as e:
+            self.log(f"Twitter error for {coin['id']}: {str(e)}")
+            return []
+
+    def collect_reddit_mentions(self, coin):
+        """Collect Reddit sentiment - copied from CollectChat"""
+        mentions = []
+        subreddits = ['cryptocurrency', 'CryptoMarkets']
+        
+        for subreddit in subreddits:
+            try:
+                url = f"https://www.reddit.com/r/{subreddit}/search.json"
+                params = {
+                    'q': f"{coin['symbol']} OR {coin['name']}",
+                    't': 'day',
+                    'limit': 100
+                }
+                response = requests.get(url, headers=self.reddit_headers, params=params)
+                
+                if response.status_code == 200:
+                    posts = response.json().get('data', {}).get('children', [])
+                    for post in posts:
+                        content = f"{post['data']['title']} {post['data'].get('selftext', '')}"
+                        sentiment_score = self.analyzer.polarity_scores(content)['compound']
+                        mentions.append(sentiment_score)
+                        
+            except Exception as e:
+                self.log(f"Reddit error: {str(e)}")
+                
+        return mentions
+
+    def aggregate_sentiment_scores(self, twitter_scores, reddit_scores, news_scores):
+        """Aggregate sentiment scores from different sources"""
+        def calculate_sentiment_ratio(scores):
+            if not scores:
+                return 0, 0
+            positive = len([s for s in scores if s > 0])
+            negative = len([s for s in scores if s < 0])
+            total = len(scores)
+            return (positive/total * 100) if total > 0 else 0, (negative/total * 100) if total > 0 else 0
+
+        twitter_pos, twitter_neg = calculate_sentiment_ratio(twitter_scores)
+        reddit_pos, reddit_neg = calculate_sentiment_ratio(reddit_scores)
+        news_pos, news_neg = calculate_sentiment_ratio(news_scores)
+
+        return {
+            'positive': (twitter_pos + reddit_pos + news_pos) / 3,
+            'negative': (twitter_neg + reddit_neg + news_neg) / 3,
+            'interest_score': len(twitter_scores) + len(reddit_scores) + len(news_scores),
+            'twitter_score': sum(twitter_scores) / len(twitter_scores) if twitter_scores else 0,
+            'reddit_score': sum(reddit_scores) / len(reddit_scores) if reddit_scores else 0,
+            'news_score': sum(news_scores) / len(news_scores) if news_scores else 0
+        }
 
     def countdown(self, seconds):
         """Display countdown timer on same line"""
@@ -363,6 +490,76 @@ class CoinGeckoDataLoader:
             print(f"\rRate limit cooldown: {remaining}s remaining (elapsed: {elapsed}s)", end='', flush=True)
             time.sleep(1)
         print("\nResuming data collection...")  # New line only at the end
+
+    def get_top_coins(self, limit=None):  # Remove limit parameter since we want all coins
+        """Get all active coins from daily data table"""
+        try:
+            query = """
+            SELECT DISTINCT 
+                m.id,
+                m.symbol,
+                m.name,
+                m.market_cap_rank
+            FROM coingecko_crypto_master m
+            INNER JOIN coingecko_crypto_daily_data d 
+                ON m.id = d.crypto_id
+            WHERE d.price_date >= DATEADD(day, -7, GETDATE())  -- Only get active coins from last 7 days
+            ORDER BY m.market_cap_rank
+            """
+            
+            with self.engine.connect() as connection:
+                result = connection.execute(text(query))
+                coins = [
+                    {
+                        'id': row[0],
+                        'symbol': row[1],
+                        'name': row[2],
+                        'market_cap_rank': row[3]
+                    }
+                    for row in result
+                ]
+                self.log(f"Found {len(coins)} active coins")
+                return coins
+        except Exception as e:
+            self.log(f"Error getting coins: {str(e)}")
+            return []
+
+    def collect_news_mentions(self, coin):
+        """Collect news mentions and sentiment for a coin"""
+        try:
+            self.log(f"Collecting news for {coin['id']}...")
+            
+            # Query NewsAPI
+            query = f"{coin['name']} OR {coin['symbol']} crypto"
+            url = f"{NEWS_API_URL}"
+            params = {
+                'q': query,
+                'apiKey': NEWS_API_KEY,
+                'language': 'en',
+                'sortBy': 'publishedAt',
+                'pageSize': 10
+            }
+            
+            response = requests.get(url, params=params)
+            if response.status_code != 200:
+                self.log(f"NewsAPI error for {coin['id']}: {response.status_code}")
+                return []
+            
+            articles = response.json().get('articles', [])
+            self.log(f"Found {len(articles)} news articles for {coin['id']}")
+            
+            # Analyze sentiment
+            sentiments = []
+            for article in articles:
+                content = f"{article['title']} {article['description'] or ''}"
+                sentiment = self.analyzer.polarity_scores(content)['compound']
+                sentiments.append(sentiment)
+            
+            return sentiments
+            
+        except Exception as e:
+            self.log(f"Error collecting news for {coin['id']}: {str(e)}")
+            return []
 
 def main():
     parser = argparse.ArgumentParser(description='Update CoinGecko data')
