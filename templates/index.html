@@ -14,6 +14,18 @@
         .negative-change {
             color: red;
         }
+        .badge-warning {
+            background-color: #ffc107;
+            color: #000;
+            font-size: 0.75em;
+            padding: 0.3em 0.6em;
+            border-radius: 10px;
+        }
+        
+        /* Optional hover effect */
+        .badge-warning:hover {
+            background-color: #e0a800;
+        }
     </style>
 </head>
 <body>
@@ -47,6 +59,11 @@
                         <td>
                             <img src="{{ crypto.image_url }}" width="20" height="20" class="mr-2" alt="{{ crypto.symbol }}">
                             {{ crypto.name }} ({{ crypto.symbol.upper() }})
+                            {% if crypto.is_trending %}
+                                <span class="badge badge-warning ml-2" title="Trending">
+                                    🔥 Trending
+                                </span>
+                            {% endif %}
                         </td>
                         <td>${{ "{:,.2f}".format(crypto.current_price) }}</td>
                         <td class="{{ 'positive-change' if crypto.price_change_24h > 0 else 'negative-change' }}">

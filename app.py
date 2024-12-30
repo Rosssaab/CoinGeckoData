@@ -10,6 +10,22 @@ engine = create_engine(f'mssql+pyodbc://{DB_USER}:{DB_PASSWORD}@{DB_SERVER}/{DB_
 @app.route('/')
 def index():
     try:
+        # First get trending coins (top 20 by 24h change)
+        trending_query = """
+        SELECT TOP 20 crypto_id
+        FROM coingecko_crypto_daily_data
+        WHERE price_date = (
+            SELECT MAX(price_date) 
+            FROM coingecko_crypto_daily_data
+        )
+        ORDER BY price_change_24h DESC
+        """
+        
+        with engine.connect() as connection:
+            trending_result = connection.execute(text(trending_query))
+            trending_ids = {row.crypto_id for row in trending_result}
+
+        # Then get main query
         query = """
         SELECT TOP 100
             m.id,
@@ -44,7 +60,8 @@ def index():
                     'price_change_24h': float(row.price_change_24h) if row.price_change_24h else 0,
                     'market_cap': float(row.market_cap) if row.market_cap else 0,
                     'total_volume': float(row.total_volume) if row.total_volume else 0,
-                    'last_updated': row.last_updated
+                    'last_updated': row.last_updated,
+                    'is_trending': row.id in trending_ids  # Add trending flag
                 } for row in result
             ]
             
