@@ -76,57 +76,45 @@ def index():
 def get_coin_details(crypto_id):
     try:
         query = """
-        SELECT TOP 1
-            m.name,
-            m.symbol,
-            d.crypto_id,
-            d.current_price,
-            d.price_change_24h,
-            d.market_cap,
-            d.total_volume,
-            COALESCE(s.sentiment_votes_up, 0) as sentiment_votes_up,
-            COALESCE(s.sentiment_votes_down, 0) as sentiment_votes_down,
-            COALESCE(s.public_interest_score, 0) as public_interest_score,
-            COALESCE(s.twitter_sentiment, 0) as twitter_sentiment,
-            COALESCE(s.reddit_sentiment, 0) as reddit_sentiment,
-            COALESCE(s.news_sentiment, 0) as news_sentiment
-        FROM coingecko_crypto_daily_data d
-        JOIN coingecko_crypto_master m ON d.crypto_id = m.id
-        LEFT JOIN coingecko_crypto_sentiment s 
-            ON d.crypto_id = s.crypto_id 
-            AND CAST(d.price_date AS DATE) = CAST(s.metric_date AS DATE)
-        WHERE d.crypto_id = :crypto_id
-        ORDER BY d.price_date DESC
+        SELECT m.id, m.name, m.symbol,
+               d.current_price, d.price_change_24h, 
+               d.market_cap, d.total_volume
+        FROM coingecko_crypto_master m
+        JOIN coingecko_crypto_daily_data d ON m.id = d.crypto_id
+        WHERE m.id = :crypto_id
+        AND d.price_date = (
+            SELECT MAX(price_date) 
+            FROM coingecko_crypto_daily_data
+        )
         """
         
         with engine.connect() as connection:
             result = connection.execute(text(query), {"crypto_id": crypto_id}).fetchone()
             
-            if result:
-                image_url = f"https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/{result.symbol.lower()}.png"
+            if not result:
+                return jsonify({'error': 'Coin not found'}), 404
                 
-                return jsonify({
-                    'name': result.name,
-                    'symbol': result.symbol,
-                    'image_url': image_url,
-                    'crypto_id': result.crypto_id,
-                    'current_price': float(result.current_price),
-                    'price_change_24h': float(result.price_change_24h) if result.price_change_24h else 0,
-                    'market_cap': float(result.market_cap) if result.market_cap else 0,
-                    'volume': float(result.total_volume) if result.total_volume else 0,
-                    'sentiment_up': float(result.sentiment_votes_up),
-                    'sentiment_down': float(result.sentiment_votes_down),
-                    'interest_score': float(result.public_interest_score),
-                    'twitter_sentiment': float(result.twitter_sentiment),
-                    'reddit_sentiment': float(result.reddit_sentiment),
-                    'news_sentiment': float(result.news_sentiment)
-                })
-            else:
-                return jsonify({'error': 'Crypto not found'}), 404
-                
+            return jsonify({
+                'id': result.id,
+                'name': result.name,
+                'symbol': result.symbol,
+                'current_price': float(result.current_price) if result.current_price else 0,
+                'price_change_24h': float(result.price_change_24h) if result.price_change_24h else 0,
+                'market_cap': float(result.market_cap) if result.market_cap else 0,
+                'volume': float(result.total_volume) if result.total_volume else 0,
+                'image_url': f"https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/{result.symbol.lower()}.png",
+                # Add dummy values for now
+                'sentiment_up': 0,
+                'sentiment_down': 0,
+                'interest_score': 0,
+                'twitter_sentiment': 0,
+                'reddit_sentiment': 0,
+                'news_sentiment': 0
+            })
+            
     except Exception as e:
-        print(f"Error fetching crypto detail: {str(e)}")
-        return jsonify({'error': str(e)}), 500
+        print(f"Error getting coin details: {str(e)}")
+        return jsonify({'error': 'Failed to load coin details'}), 500
 
 @app.route('/test')
 def test_db():
@@ -242,6 +230,116 @@ def predictions():
         import traceback
         print(traceback.format_exc())
         return str(e), 500
+
+@app.route('/past_predictions')
+def past_predictions():
+    try:
+        query = """
+        SELECT 
+            m.id,
+            m.name,
+            m.symbol,
+            m.market_cap_rank as rank,
+            p.prediction_date,
+            p.price_24h as predicted_price_24h,
+            p.price_48h as predicted_price_48h,
+            p.price_3d as predicted_price_3d,
+            p.price_7d as predicted_price_7d,
+            d.current_price as actual_price,
+            d.price_date
+        FROM coingecko_crypto_master m
+        JOIN coingecko_crypto_predictions p ON m.id = p.crypto_id
+        LEFT JOIN coingecko_crypto_daily_data d ON m.id = d.crypto_id 
+            AND d.price_date > p.prediction_date  -- Get any actual price after prediction
+        ORDER BY p.prediction_date DESC, m.market_cap_rank
+        """
+        
+        with engine.connect() as connection:
+            result = connection.execute(text(query))
+            past_predictions = []
+            
+            for row in result:
+                # Calculate accuracy for each timeframe
+                actual_price = float(row.actual_price) if row.actual_price else None
+                if actual_price:
+                    predictions = {
+                        '24h': {
+                            'predicted': float(row.predicted_price_24h),
+                            'actual': actual_price,
+                            'timeframe': '24 hours'
+                        },
+                        '48h': {
+                            'predicted': float(row.predicted_price_48h),
+                            'actual': actual_price,
+                            'timeframe': '48 hours'
+                        },
+                        '3d': {
+                            'predicted': float(row.predicted_price_3d),
+                            'actual': actual_price,
+                            'timeframe': '3 days'
+                        },
+                        '7d': {
+                            'predicted': float(row.predicted_price_7d),
+                            'actual': actual_price,
+                            'timeframe': '7 days'
+                        }
+                    }
+                    
+                    for timeframe, data in predictions.items():
+                        if data['predicted']:
+                            difference = ((data['actual'] - data['predicted']) / data['predicted']) * 100
+                            accuracy = 100 - min(abs(difference), 100)  # Cap accuracy at 0-100%
+                            
+                            past_predictions.append({
+                                'id': row.id,
+                                'name': row.name,
+                                'symbol': row.symbol,
+                                'rank': row.rank,
+                                'image_url': f"https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/{row.symbol.lower()}.png",
+                                'prediction_date': row.prediction_date,
+                                'timeframe': data['timeframe'],
+                                'predicted_price': data['predicted'],
+                                'actual_price': data['actual'],
+                                'difference': difference,
+                                'accuracy': accuracy
+                            })
+            
+        return render_template('past_predictions.html', past_predictions=past_predictions)
+    except Exception as e:
+        print(f"Error in past predictions route: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return str(e), 500
+
+@app.route('/api/coin_history/<coin_id>')
+def coin_history(coin_id):
+    try:
+        # Query last 7 days of price data from correct table
+        query = """
+        SELECT TOP 7 price_date, current_price 
+        FROM coingecko_crypto_daily_data 
+        WHERE crypto_id = :coin_id 
+        ORDER BY price_date DESC
+        """
+        
+        with engine.connect() as connection:
+            result = connection.execute(text(query), {"coin_id": coin_id}).fetchall()
+            
+            if not result:
+                print(f"No data found for coin: {coin_id}")
+                return jsonify({'error': 'No data found'}), 404
+                
+            dates = [row[0].strftime('%Y-%m-%d') for row in result][::-1]
+            prices = [float(row[1]) for row in result][::-1]
+            
+            return jsonify({
+                'dates': dates,
+                'prices': prices
+            })
+            
+    except Exception as e:
+        print(f"Error in coin_history: {str(e)}")
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True) 

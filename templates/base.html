@@ -56,6 +56,7 @@
         }
     </style>
     {% block extra_css %}{% endblock %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <div class="header">
@@ -69,6 +70,8 @@
                 onclick="window.location.href='/trending'">Trending</button>
         <button {% if request.endpoint == 'predictions' %}class="active"{% endif %} 
                 onclick="window.location.href='/predictions'">Predictions</button>
+        <button {% if request.endpoint == 'past_predictions' %}class="active"{% endif %} 
+                onclick="window.location.href='/past_predictions'">Past Predictions</button>
     </div>
 
     {% block content %}{% endblock %}
