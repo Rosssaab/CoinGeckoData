@@ -25,9 +25,9 @@ def index():
             trending_result = connection.execute(text(trending_query))
             trending_ids = {row.crypto_id for row in trending_result}
 
-        # Then get main query
+        # Then get main query - removed TOP 100
         query = """
-        SELECT TOP 100
+        SELECT 
             m.id,
             m.name,
             m.symbol,
@@ -61,7 +61,7 @@ def index():
                     'market_cap': float(row.market_cap) if row.market_cap else 0,
                     'total_volume': float(row.total_volume) if row.total_volume else 0,
                     'last_updated': row.last_updated,
-                    'is_trending': row.id in trending_ids  # Add trending flag
+                    'is_trending': row.id in trending_ids
                 } for row in result
             ]
             
@@ -142,17 +142,18 @@ def test_db():
 @app.route('/trending')
 def trending():
     try:
+        # First get trending coins (top 20 by 24h change)
         query = """
         SELECT TOP 20
             m.id,
             m.name,
             m.symbol,
+            m.market_cap_rank as rank,
             d.current_price,
             d.price_change_24h,
             d.market_cap,
             d.total_volume,
-            d.price_date as last_updated,
-            m.market_cap_rank
+            d.price_date as last_updated
         FROM coingecko_crypto_master m
         JOIN coingecko_crypto_daily_data d ON m.id = d.crypto_id
         WHERE d.price_date = (
@@ -164,8 +165,9 @@ def trending():
         
         with engine.connect() as connection:
             result = connection.execute(text(query))
-            trending_cryptos = [
+            cryptocurrencies = [
                 {
+                    'rank': row.rank,
                     'id': row.id,
                     'name': row.name,
                     'symbol': row.symbol,
@@ -173,15 +175,70 @@ def trending():
                     'current_price': float(row.current_price) if row.current_price else 0,
                     'price_change_24h': float(row.price_change_24h) if row.price_change_24h else 0,
                     'market_cap': float(row.market_cap) if row.market_cap else 0,
-                    'volume_24h': float(row.total_volume) if row.total_volume else 0,
-                    'last_updated': row.last_updated,
-                    'market_cap_rank': row.market_cap_rank
+                    'total_volume': float(row.total_volume) if row.total_volume else 0,
+                    'last_updated': row.last_updated
                 } for row in result
             ]
             
-        return render_template('trending.html', crypto_data=trending_cryptos)
+        return render_template('trending.html', cryptocurrencies=cryptocurrencies)
     except Exception as e:
         print(f"Error in trending route: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return str(e), 500
+
+@app.route('/predictions')
+def predictions():
+    try:
+        query = """
+        SELECT TOP 100
+            m.id,
+            m.name,
+            m.symbol,
+            m.market_cap_rank as rank,
+            d.current_price,
+            d.price_date as last_updated
+        FROM coingecko_crypto_master m
+        JOIN coingecko_crypto_daily_data d ON m.id = d.crypto_id
+        WHERE d.price_date = (
+            SELECT MAX(price_date) 
+            FROM coingecko_crypto_daily_data
+        )
+        ORDER BY m.market_cap_rank
+        """
+        
+        with engine.connect() as connection:
+            result = connection.execute(text(query))
+            predictions = [
+                {
+                    'id': row.id,
+                    'name': row.name,
+                    'symbol': row.symbol,
+                    'rank': row.rank,
+                    'image_url': f"https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/{row.symbol.lower()}.png",
+                    'current_price': float(row.current_price),
+                    # Placeholder predictions with increasing percentages
+                    'pred_24h': float(row.current_price) * 1.01,
+                    'pred_48h': float(row.current_price) * 1.02,
+                    'pred_3d': float(row.current_price) * 1.03,
+                    'pred_7d': float(row.current_price) * 1.05,
+                    # Placeholder changes
+                    'pred_24h_change': 1.0,
+                    'pred_48h_change': 2.0,
+                    'pred_3d_change': 3.0,
+                    'pred_7d_change': 5.0,
+                    # Placeholder confidence scores (decreasing with time horizon)
+                    'confidence_24h': 85.0,
+                    'confidence_48h': 80.0,
+                    'confidence_3d': 75.0,
+                    'confidence_7d': 70.0,
+                    'last_updated': row.last_updated
+                } for row in result
+            ]
+            
+        return render_template('predictions.html', predictions=predictions)
+    except Exception as e:
+        print(f"Error in predictions route: {str(e)}")
         import traceback
         print(traceback.format_exc())
         return str(e), 500

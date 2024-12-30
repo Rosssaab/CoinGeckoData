@@ -1,3 +1,86 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Trending Cryptocurrencies</h2>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="thead-dark">
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Price</th>
+                <th>24h Change</th>
+                <th>Market Cap</th>
+                <th>Volume (24h)</th>
+                <th>Last Updated</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for crypto in cryptocurrencies %}
+            <tr class="crypto-row" data-crypto-id="{{ crypto.id }}">
+                <td>{{ crypto.rank }}</td>
+                <td>
+                    <img src="{{ crypto.image_url }}" width="20" height="20" class="mr-2" alt="{{ crypto.symbol }}">
+                    {{ crypto.name }} ({{ crypto.symbol.upper() }})
+                </td>
+                <td>${{ "{:,.2f}".format(crypto.current_price) }}</td>
+                <td class="{{ 'price-up' if crypto.price_change_24h > 0 else 'price-down' }}">
+                    {{ "{:+.2f}%".format(crypto.price_change_24h) }}
+                </td>
+                <td>${{ "{:,.0f}".format(crypto.market_cap) }}</td>
+                <td>${{ "{:,.0f}".format(crypto.total_volume) }}</td>
+                <td>{{ crypto.last_updated.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+$(document).ready(function() {
+    $('.crypto-row').click(function() {
+        const cryptoId = $(this).data('crypto-id');
+        
+        // Show loading state
+        $('#coinDetailsModal').modal('show');
+        $('.modal-title').text('Loading...');
+        
+        // Fetch coin details
+        fetch(`/get_coin_details/${cryptoId}`)
+            .then(response => response.json())
+            .then(data => {
+                // Update modal title and image
+                $('#modalCryptoImage').attr('src', data.image_url).attr('alt', data.symbol);
+                $('.modal-title').text(`${data.name} Details`);
+                
+                // Update the rest of modal content
+                $('#modalPrice').text(`$${data.current_price.toLocaleString()}`);
+                $('#modal24hChange').text(`${data.price_change_24h.toFixed(2)}%`)
+                    .removeClass('text-success text-danger')
+                    .addClass(data.price_change_24h >= 0 ? 'text-success' : 'text-danger');
+                $('#modalMarketCap').text(`$${data.market_cap.toLocaleString()}`);
+                $('#modalVolume').text(`$${data.volume.toLocaleString()}`);
+                
+                // Update sentiment data
+                $('#modalSentimentUp').text(data.sentiment_up);
+                $('#modalSentimentDown').text(data.sentiment_down);
+                $('#modalInterestScore').text(data.interest_score);
+                $('#modalTwitterSentiment').text(data.twitter_sentiment.toFixed(2));
+                $('#modalRedditSentiment').text(data.reddit_sentiment.toFixed(2));
+                $('#modalNewsSentiment').text(data.news_sentiment.toFixed(2));
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                $('.modal-title').text('Error loading data');
+                $('.modal-body').html('<p class="text-danger">Failed to load coin details.</p>');
+            });
+    });
+});
+</script>
+{% endblock %} 
 <!DOCTYPE html>
 <html>
 <head>
@@ -48,8 +131,9 @@
     </div>
     
     <div class="nav-tabs">
-        <button onclick="window.location.href='/'">Top 100</button>
+        <button onclick="window.location.href='/'">All Coins</button>
         <button class="active">Trending</button>
+        <button onclick="window.location.href='/predictions'">Predictions</button>
     </div>
 
     <h2>Trending Cryptocurrencies</h2>

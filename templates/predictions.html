@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Price Predictions made on {{ predictions[0].last_updated.strftime('%Y-%m-%d %H:%M:%S') }}</h2>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="thead-dark">
+            <tr>
+                <th>#</th>
+                <th>Name</th>
+                <th>Current Price</th>
+                <th>24h Prediction</th>
+                <th>48h Prediction</th>
+                <th>3d Prediction</th>
+                <th>7d Prediction</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for prediction in predictions %}
+            <tr class="crypto-row" data-crypto-id="{{ prediction.id }}">
+                <td>{{ prediction.rank }}</td>
+                <td>
+                    <img src="{{ prediction.image_url }}" width="20" height="20" class="mr-2" alt="{{ prediction.symbol }}">
+                    {{ prediction.name }} ({{ prediction.symbol.upper() }})
+                </td>
+                <td>${{ "{:,.2f}".format(prediction.current_price) }}</td>
+                <td>
+                    <div class="{{ 'price-up' if prediction.pred_24h_change > 0 else 'price-down' }}">
+                        ${{ "{:,.2f}".format(prediction.pred_24h) }}
+                        ({{ "{:+.2f}%".format(prediction.pred_24h_change) }})
+                    </div>
+                    <div class="confidence-score">
+                        Confidence: {{ "{:.1f}%".format(prediction.confidence_24h) }}
+                    </div>
+                </td>
+                <td>
+                    <div class="{{ 'price-up' if prediction.pred_48h_change > 0 else 'price-down' }}">
+                        ${{ "{:,.2f}".format(prediction.pred_48h) }}
+                        ({{ "{:+.2f}%".format(prediction.pred_48h_change) }})
+                    </div>
+                    <div class="confidence-score">
+                        Confidence: {{ "{:.1f}%".format(prediction.confidence_48h) }}
+                    </div>
+                </td>
+                <td>
+                    <div class="{{ 'price-up' if prediction.pred_3d_change > 0 else 'price-down' }}">
+                        ${{ "{:,.2f}".format(prediction.pred_3d) }}
+                        ({{ "{:+.2f}%".format(prediction.pred_3d_change) }})
+                    </div>
+                    <div class="confidence-score">
+                        Confidence: {{ "{:.1f}%".format(prediction.confidence_3d) }}
+                    </div>
+                </td>
+                <td>
+                    <div class="{{ 'price-up' if prediction.pred_7d_change > 0 else 'price-down' }}">
+                        ${{ "{:,.2f}".format(prediction.pred_7d) }}
+                        ({{ "{:+.2f}%".format(prediction.pred_7d_change) }})
+                    </div>
+                    <div class="confidence-score">
+                        Confidence: {{ "{:.1f}%".format(prediction.confidence_7d) }}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<style>
+    .confidence-score {
+        font-size: 0.85em;
+        color: #666;
+        margin-top: 3px;
+    }
+    .text-muted {
+        color: #6c757d;
+        font-style: italic;
+        margin-bottom: 5px;
+    }
+</style>
+{% endblock %} 
