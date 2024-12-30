@@ -4,19 +4,23 @@ from sklearn.preprocessing import MinMaxScaler
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Input
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.callbacks import EarlyStopping
 from sqlalchemy import create_engine, text
 import os
 from datetime import datetime
 from config import DB_CONNECTION_STRING, DB_SERVER, DB_NAME, DB_USER, DB_PASSWORD
 import warnings
 import glob
+import threading
+from concurrent.futures import ThreadPoolExecutor, TimeoutError
+import gc
 
 warnings.filterwarnings('ignore', category=UserWarning)
 
 class CryptoModelTrainer:
     def __init__(self):
-        # Create SQLAlchemy engine
-        self.connection_str = f'mssql+pyodbc://{DB_USER}:{DB_PASSWORD}@{DB_SERVER}/{DB_NAME}?driver=SQL+Server+Native+Client+11.0'
+        # Create SQLAlchemy engine with ODBC Driver 17
+        self.connection_str = f'mssql+pyodbc://{DB_USER}:{DB_PASSWORD}@{DB_SERVER}/{DB_NAME}?driver=ODBC+Driver+17+for+SQL+Server'
         self.engine = create_engine(self.connection_str)
         
         self.min_days_required = 14  # Reduced from 90 to 14 days for testing
@@ -81,17 +85,44 @@ class CryptoModelTrainer:
         except Exception as e:
             self.log(f"Error during model cleanup: {str(e)}")
 
+    def train_model_with_timeout(self, model, X, y, early_stopping, timeout_seconds=300):
+        """Train model with timeout"""
+        done = threading.Event()
+        result = {'history': None, 'error': None}
+        
+        def training_target():
+            try:
+                result['history'] = model.fit(
+                    X, y,
+                    epochs=50,
+                    batch_size=32,
+                    validation_split=0.2,
+                    callbacks=[early_stopping],
+                    verbose=0
+                )
+                done.set()
+            except Exception as e:
+                result['error'] = str(e)
+                done.set()
+
+        training_thread = threading.Thread(target=training_target)
+        training_thread.start()
+        
+        # Wait for training to complete or timeout
+        if not done.wait(timeout=timeout_seconds):
+            return None
+        
+        if result['error']:
+            raise Exception(result['error'])
+            
+        return result['history']
+
     def train_models(self):
         """Train models for all suitable cryptocurrencies"""
         try:
-            # Add this line at the start of train_models
             self.cleanup_old_models()
+            start_time = datetime.now()
             
-            # Add error handling for model directory
-            if not os.path.exists(self.models_dir):
-                os.makedirs(self.models_dir)
-                self.log(f"Created models directory: {self.models_dir}")
-
             query = """
             WITH CryptoData AS (
                 SELECT 
@@ -107,14 +138,34 @@ class CryptoModelTrainer:
             
             df = pd.read_sql(query, self.engine, params=(self.min_days_required,))
             total_coins = len(df)
-            self.log(f"Found {total_coins} coins with sufficient data")
-
-            # Add memory cleanup
+            total_models = total_coins * 4  # 4 timeframes per coin
+            models_completed = 0
+            
+            self.log(f"Starting training of {total_models} models ({total_coins} coins x 4 timeframes)")
+            self.log(f"Start time: {start_time.strftime('%Y-%m-%d %H:%M:%S')}")
+            
             import gc
+            from tensorflow.keras import backend as K
+            from contextlib import contextmanager
+            import signal
+            
+            @contextmanager
+            def timeout(seconds):
+                def handler(signum, frame):
+                    raise TimeoutError(f"Training timed out after {seconds} seconds")
+                
+                signal.signal(signal.SIGALRM, handler)
+                signal.alarm(seconds)
+                try:
+                    yield
+                finally:
+                    signal.alarm(0)
             
             for idx, row in df.iterrows():
                 coin_id, name = row['id'], row['name']
-                self.log(f"\nProcessing {name} ({idx+1}/{total_coins})")
+                coin_start_time = datetime.now()
+                
+                self.log(f"\nProcessing {name} ({idx+1}/{total_coins}, {(idx/total_coins)*100:.1f}% of coins)")
                 
                 try:
                     data = pd.read_sql(f"""
@@ -145,38 +196,39 @@ class CryptoModelTrainer:
                     for days in [1, 2, 3, 7]:
                         try:
                             model_name = f"{coin_id}_LSTM_v1_{days}d"
-                            self.log(f"Training {model_name} model...")
+                            models_completed += 1
+                            progress = (models_completed / total_models) * 100
+                            
+                            elapsed_time = (datetime.now() - start_time).total_seconds() / 3600  # hours
+                            estimated_total_time = (elapsed_time / progress) * 100 if progress > 0 else 0
+                            remaining_time = max(0, estimated_total_time - elapsed_time)
+                            
+                            self.log(f"Training {model_name} model... ({progress:.1f}% complete, ~{remaining_time:.1f}h remaining)")
                             
                             X, y, scaler = self.prepare_data(data, days)
                             
                             if len(X) < 50:
                                 self.log(f"Insufficient sequences for {model_name}")
                                 continue
-                                
-                            model = self.create_model((self.sequence_length, X.shape[2]))
                             
-                            # Add early stopping to prevent overfitting
-                            from tensorflow.keras.callbacks import EarlyStopping
+                            K.clear_session()
+                            
+                            model = self.create_model((self.sequence_length, X.shape[2]))
                             early_stopping = EarlyStopping(
                                 monitor='val_loss',
-                                patience=10,
+                                patience=5,
                                 restore_best_weights=True
                             )
                             
-                            history = model.fit(
-                                X, y, 
-                                epochs=100,
-                                batch_size=32, 
-                                validation_split=0.2,
-                                callbacks=[early_stopping],
-                                verbose=0
-                            )
+                            history = self.train_model_with_timeout(model, X, y, early_stopping)
                             
-                            # Save model in newer format
+                            if history is None:
+                                self.log(f"Training timed out for {model_name}")
+                                continue
+                            
                             model_path = os.path.join(self.models_dir, f"{model_name}.keras")
-                            model.save(model_path, save_format='keras')
+                            model.save(model_path)
                             
-                            # Save scaler
                             scaler_path = os.path.join(self.models_dir, f"{model_name}_scaler.pkl")
                             pd.to_pickle(scaler, scaler_path)
                             
@@ -185,7 +237,6 @@ class CryptoModelTrainer:
                             
                             self.log(f"Saved {model_name} model and scaler (validation loss: {val_loss:.6f})")
                             
-                            # Clean up to prevent memory leaks
                             del model, history
                             gc.collect()
                             
@@ -193,10 +244,17 @@ class CryptoModelTrainer:
                             self.log(f"Error training {model_name}: {str(e)}")
                             continue
                             
+                    coin_duration = (datetime.now() - coin_start_time).total_seconds() / 60
+                    self.log(f"Completed {name} in {coin_duration:.1f} minutes")
+                    
                 except Exception as e:
                     self.log(f"Error processing {name}: {str(e)}")
                     continue
                     
+            total_duration = (datetime.now() - start_time).total_seconds() / 3600
+            self.log(f"\nTraining completed in {total_duration:.1f} hours")
+            self.log(f"Successfully trained {models_completed} out of {total_models} models")
+            
         except Exception as e:
             self.log(f"Error in train_models: {str(e)}")
         finally:
