@@ -15,7 +15,7 @@
     <table class="table table-hover">
         <thead class="thead-dark">
             <tr>
-                <th class="sortable" data-sort="rank">#</th>
+                <th class="sortable rank-column" data-sort="rank" style="text-align: left;">Rank</th>
                 <th class="sortable" data-sort="name">Name</th>
                 <th class="sortable" data-sort="price">Price</th>
                 <th class="sortable" data-sort="change">24h Change</th>
@@ -27,7 +27,7 @@
         <tbody id="cryptoTableBody">
             {% for crypto in cryptocurrencies %}
             <tr class="crypto-row" data-crypto-id="{{ crypto.id }}">
-                <td>{{ crypto.rank }}</td>
+                <td style="text-align: left;">{{ crypto.rank }}</td>
                 <td>
                     <img src="{{ crypto.image_url }}" width="24" height="24" alt="{{ crypto.symbol }}">
                     {{ crypto.name }}
