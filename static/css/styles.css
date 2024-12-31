@@ -104,4 +104,108 @@ body {
     font-size: 0.8rem;
     color: #6c757d;
     margin-top: 2px;
+}
+
+/* Add sorting indicators */
+.sortable {
+    cursor: pointer;
+    position: relative;
+}
+
+.sortable:after {
+    content: '↕';
+    position: absolute;
+    right: 8px;
+    color: #999;
+}
+
+.sortable.sort-asc:after {
+    content: '↑';
+    color: #333;
+}
+
+.sortable.sort-desc:after {
+    content: '↓';
+    color: #333;
+}
+
+/* Optional: Add hover effect */
+.sortable:hover {
+    background-color: #f8f9fa;
+}
+
+.input-group-text {
+    background-color: #f8f9fa;
+    border-left: none;
+}
+
+#cryptoSearch:focus {
+    box-shadow: none;
+    border-right: none;
+}
+
+.input-group-append {
+    cursor: pointer;
+}
+
+/* Update search box styling */
+th .input-group {
+    width: 180px;
+    margin-top: 4px;
+}
+
+th .input-group-append .btn {
+    height: 25px;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+}
+
+th .form-control-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+    line-height: 1;
+    border-radius: 0.2rem;
+}
+
+/* Remove the extra search box at the top */
+.row.mb-3 {
+    display: none;
+}
+
+/* Adjust table row height */
+.table td {
+    padding: 0.5rem;
+    vertical-align: middle;
+}
+
+th #cryptoSearch {
+    border-right: none;
+}
+
+th #cryptoSearch:focus {
+    box-shadow: none;
+}
+
+/* Make sure the search box doesn't interfere with sorting */
+th.sortable {
+    min-width: 250px;  /* Adjust based on your needs */
+}
+
+/* Style the new search box */
+.input-group-text {
+    background-color: #f8f9fa;
+    border-left: none;
+}
+
+#cryptoSearch {
+    border-right: none;
+}
+
+#cryptoSearch:focus {
+    box-shadow: none;
+}
+
+.input-group-append {
+    cursor: pointer;
 } 
