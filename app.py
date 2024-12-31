@@ -340,5 +340,74 @@ def coin_history(crypto_id):
         print(f"Error in coin_history: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
+@app.route('/api/sentiment/<crypto_id>')
+def get_sentiment(crypto_id):
+    try:
+        query = """
+        SELECT TOP 1
+            sentiment_votes_up,
+            sentiment_votes_down,
+            public_interest_score,
+            twitter_sentiment,
+            reddit_sentiment,
+            news_sentiment
+        FROM coingecko_crypto_sentiment
+        WHERE crypto_id = :crypto_id
+        ORDER BY metric_date DESC
+        """
+        
+        with engine.connect() as connection:
+            result = connection.execute(text(query), {'crypto_id': crypto_id}).first()
+            
+            if result:
+                return jsonify({
+                    'positive': result.sentiment_votes_up or 0,
+                    'negative': result.sentiment_votes_down or 0,
+                    'interest_score': result.public_interest_score or 0,
+                    'twitter_score': result.twitter_sentiment or 0,
+                    'reddit_score': result.reddit_sentiment or 0,
+                    'news_score': result.news_sentiment or 0
+                })
+            return jsonify({
+                'positive': 0,
+                'negative': 0,
+                'interest_score': 0,
+                'twitter_score': 0,
+                'reddit_score': 0,
+                'news_score': 0
+            })
+            
+    except Exception as e:
+        print(f"Error getting sentiment: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/price_history/<crypto_id>')
+def get_price_history(crypto_id):
+    try:
+        query = """
+        SELECT 
+            price_date as date,
+            current_price as price
+        FROM coingecko_crypto_daily_data
+        WHERE crypto_id = :crypto_id
+        AND price_date >= DATEADD(month, -1, GETDATE())
+        ORDER BY price_date ASC
+        """
+        
+        with engine.connect() as connection:
+            results = connection.execute(text(query), {'crypto_id': crypto_id}).fetchall()
+            
+            dates = [row.date.strftime('%Y-%m-%d') for row in results]
+            prices = [float(row.price) for row in results]
+            
+            return jsonify({
+                'dates': dates,
+                'prices': prices
+            })
+            
+    except Exception as e:
+        print(f"Error getting price history: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
 if __name__ == '__main__':
-    app.run(debug=True) 
+    app.run(host='0.0.0.0', port=5000, debug=True) 

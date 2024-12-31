@@ -1,23 +1,7 @@
 // Common utility functions
 function formatDate(dateStr) {
-    try {
-        if (!dateStr) return '';
-        if (dateStr.match(/^\d{2}-\d{2}-\d{4}/)) return dateStr;
-        const date = new Date(dateStr);
-        if (isNaN(date.getTime())) return '';
-        return date.toLocaleString('en-GB', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
-        });
-    } catch (e) {
-        console.error('Date formatting error:', e);
-        return '';
-    }
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('en-GB'); // DD/MM/YYYY format
 }
 
 // Index page specific code
@@ -37,39 +21,101 @@ const IndexPage = {
     },
 
     init: function() {
-        $('.crypto-row').click(function() {
+        $('.crypto-row').on('click', function() {
             const cryptoId = $(this).data('crypto-id');
-            const row = $(this).closest('tr');
             
-            $('#coinDetailsModal').modal('show');
-            $('.modal-title').text('Loading...');
-            
-            if (IndexPage.priceChart) {
-                IndexPage.priceChart.destroy();
-                IndexPage.priceChart = null;
-            }
-            
-            const slider = document.getElementById('timeSlider');
-            if (slider.noUiSlider) {
-                slider.noUiSlider.destroy();
-            }
+            // Get the data from the row
+            const row = $(this);
+            const name = row.find('td:eq(1)').text().trim();
+            const price = row.find('td:eq(2)').text().trim();
+            const change = row.find('td:eq(3)').text().trim();
+            const marketCap = row.find('td:eq(4)').text().trim();
+            const volume = row.find('td:eq(5)').text().trim();
+            const imageUrl = row.find('img').attr('src');
 
-            // Fetch historical data and create chart
-            fetch(`/api/coin_history/${cryptoId}`)
-                .then(response => response.json())
+            // Update modal content
+            $('#modalCryptoImage').attr('src', imageUrl);
+            $('.modal-title').text(name);
+            $('#modalPrice').text(price);
+            $('#modal24hChange').text(change);
+            $('#modalMarketCap').text(marketCap);
+            $('#modalVolume').text(volume);
+
+            // Fetch sentiment data from the server
+            fetch(`/api/sentiment/${cryptoId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    IndexPage.fullChartData = data;
-                    const totalDays = data.dates.length;
-                    const initialStart = Math.max(0, totalDays - 365); // Show last year by default
-                    const initialEnd = totalDays;
+                    // Format the sentiment values with proper decimal places
+                    const formatPercentage = (value) => {
+                        return ((value || 0) + '%');
+                    };
 
+                    $('#modalSentimentUp').text(formatPercentage(data.positive));
+                    $('#modalSentimentDown').text(formatPercentage(data.negative));
+                    $('#modalInterestScore').text(data.interest_score || '0');
+
+                    // Clear any previous error messages
+                    $('.sentiment-error').remove();
+                })
+                .catch(error => {
+                    console.error('Error fetching sentiment data:', error);
+                    // Set default values if there's an error
+                    $('#modalSentimentUp').text('0%');
+                    $('#modalSentimentDown').text('0%');
+                    $('#modalInterestScore').text('0');
+                    
+                    // Optionally show error message to user
+                    $('.modal-body').prepend(
+                        `<div class="alert alert-warning sentiment-error">
+                            Unable to load sentiment data
+                        </div>`
+                    );
+                });
+
+            // Show the modal
+            $('#coinDetailsModal').modal('show');
+
+            // Load price chart data
+            loadPriceChart(cryptoId);
+        });
+
+        // Function to load price chart
+        function loadPriceChart(cryptoId) {
+            fetch(`/api/price_history/${cryptoId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    // Store full data for slider use
+                    window.fullChartData = {
+                        dates: data.dates,
+                        prices: data.prices
+                    };
+
+                    // Get the chart context
                     const ctx = document.getElementById('priceChart').getContext('2d');
-                    IndexPage.priceChart = new Chart(ctx, {
+                    
+                    // Destroy existing chart if it exists
+                    if (window.currentChart instanceof Chart) {
+                        window.currentChart.destroy();
+                    }
+
+                    // Create new chart
+                    window.currentChart = new Chart(ctx, {
                         type: 'line',
                         data: {
-                            labels: data.dates.slice(initialStart, initialEnd),
+                            labels: data.dates,
                             datasets: [{
-                                data: data.prices.slice(initialStart, initialEnd),
+                                label: 'Price (USD)',
+                                data: data.prices,
                                 borderColor: 'rgb(75, 192, 192)',
                                 tension: 0.1,
                                 fill: false
@@ -88,25 +134,23 @@ const IndexPage = {
                                     }
                                 },
                                 x: {
+                                    type: 'category',
                                     ticks: {
-                                        maxTicksLimit: 7,
-                                        callback: function(value, index) {
-                                            return formatDate(this.getLabelForValue(value));
-                                        }
+                                        maxTicksLimit: 10
                                     }
-                                }
-                            },
-                            plugins: {
-                                legend: {
-                                    display: false
                                 }
                             }
                         }
                     });
 
                     // Initialize time range slider
+                    const slider = document.getElementById('timeSlider');
+                    if (slider.noUiSlider) {
+                        slider.noUiSlider.destroy();
+                    }
+
                     noUiSlider.create(slider, {
-                        start: [initialStart, initialEnd - 1],
+                        start: [0, data.dates.length - 1],
                         connect: true,
                         range: {
                             'min': 0,
@@ -115,35 +159,44 @@ const IndexPage = {
                         step: 1
                     });
 
+                    // Update chart when slider changes
                     slider.noUiSlider.on('update', function(values, handle) {
                         const startIndex = Math.floor(values[0]);
                         const endIndex = Math.ceil(values[1]);
                         
+                        // Update date range labels
                         $('#timeRangeStart').text(formatDate(data.dates[startIndex]));
                         $('#timeRangeEnd').text(formatDate(data.dates[endIndex]));
                         
-                        IndexPage.updateChartData(startIndex, endIndex);
+                        // Update chart data
+                        window.currentChart.data.labels = data.dates.slice(startIndex, endIndex + 1);
+                        window.currentChart.data.datasets[0].data = data.prices.slice(startIndex, endIndex + 1);
+                        window.currentChart.update('none');
                     });
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    $('.modal-title').text('Error');
-                    $('.modal-body').html('<p class="text-danger">Failed to load chart data. Please try again later.</p>');
+                    console.error('Error loading chart:', error);
+                    const container = document.querySelector('.chart-container');
+                    container.innerHTML = '<p class="text-danger">Failed to load price chart. Please try again later.</p>';
                 });
-        });
+        }
 
-        // Clean up when modal is closed
+        // Add modal cleanup
         $('#coinDetailsModal').on('hidden.bs.modal', function() {
-            if (IndexPage.priceChart) {
-                IndexPage.priceChart.destroy();
-                IndexPage.priceChart = null;
+            // Destroy chart if it exists
+            if (window.currentChart instanceof Chart) {
+                window.currentChart.destroy();
+                window.currentChart = null;
             }
-            IndexPage.fullChartData = null;
             
+            // Clean up slider if it exists
             const slider = document.getElementById('timeSlider');
-            if (slider.noUiSlider) {
+            if (slider && slider.noUiSlider) {
                 slider.noUiSlider.destroy();
             }
+
+            // Clear stored chart data
+            window.fullChartData = null;
         });
     }
 };
@@ -191,7 +244,7 @@ const TrendingPage = {
             }
 
             // Fetch and display chart data
-            fetch(`/api/coin_history/${cryptoId}`)
+            fetch(`/api/price_history/${cryptoId}`)
                 .then(response => response.json())
                 .then(data => {
                     TrendingPage.fullChartData = data;
@@ -342,7 +395,7 @@ const PredictionsPage = {
             };
 
             // Fetch historical data and create chart
-            fetch(`/api/coin_history/${cryptoId}`)
+            fetch(`/api/price_history/${cryptoId}`)
                 .then(response => response.json())
                 .then(data => {
                     // Create future dates and prices array
@@ -618,6 +671,17 @@ const PastPredictionsPage = {
         });
     }
 };
+
+// Function to format numbers with commas
+function numberWithCommas(x) {
+    return x.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+}
+
+// Function to format percentage
+function formatPercentage(value) {
+    if (value === null || value === undefined) return '0%';
+    return value.toFixed(2) + '%';
+}
 
 // Initialize when document is ready
 $(document).ready(function() {

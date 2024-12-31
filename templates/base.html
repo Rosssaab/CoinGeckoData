@@ -42,7 +42,7 @@
                     </button>
                 </div>
                 <div class="modal-body">
-                    <div class="row">
+                    <div class="row mb-4">
                         <div class="col-md-6">
                             <h6>Price Information</h6>
                             <p>Current Price: <span id="modalPrice"></span></p>
@@ -58,6 +58,18 @@
                             <p>Twitter Sentiment: <span id="modalTwitterSentiment"></span></p>
                             <p>Reddit Sentiment: <span id="modalRedditSentiment"></span></p>
                             <p>News Sentiment: <span id="modalNewsSentiment"></span></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Add chart container -->
+                    <div class="chart-container" style="position: relative; height:300px; width:100%">
+                        <canvas id="priceChart"></canvas>
+                    </div>
+                    <div class="slider-container px-3 mt-4">
+                        <div id="timeSlider"></div>
+                        <div class="d-flex justify-content-between mt-2">
+                            <small id="timeRangeStart" class="text-muted"></small>
+                            <small id="timeRangeEnd" class="text-muted"></small>
                         </div>
                     </div>
                 </div>
