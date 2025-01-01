@@ -1,0 +1,257 @@
+Email Configuration:
+From: rosssaab@gmail.com
+To: where.to.send@gmail.com
+SMTP Server: smtp.gmail.com
+SMTP Port: 587
+Username: rosssaab@gmail.com
+Password length: 16 characters
+Error during analysis: (pyodbc.ProgrammingError) ('42S02', "[42S02] [Microsoft][SQL Server Native Client 11.0][SQL Server]Invalid object name 'coingecko_crypto_social_data'. (208) (SQLExecDirectW)")
+[SQL: 
+    WITH PriceChanges AS (
+        SELECT 
+            d1.crypto_id,
+            d1.price_date,
+            d1.current_price,
+            d1.price_change_24h,
+            s.twitter_followers,
+            s.reddit_subscribers,
+            s.reddit_active_users_48h
+        FROM coingecko_crypto_daily_data d1
+        JOIN coingecko_crypto_social_data s 
+            ON d1.crypto_id = s.crypto_id 
+            AND d1.price_date = s.metric_date
+        WHERE d1.price_date >= DATEADD(day, -30, GETDATE())
+    )
+    SELECT 
+        crypto_id,
+        AVG(price_change_24h) as avg_price_change,
+        AVG(twitter_followers) as avg_twitter_followers,
+        AVG(reddit_subscribers) as avg_reddit_subscribers,
+        AVG(reddit_active_users_48h) as avg_reddit_active_users
+    FROM PriceChanges
+    GROUP BY crypto_id
+    ORDER BY avg_price_change DESC
+    ]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Email Configuration:
+From: rosssaab@gmail.com
+To: where.to.send@gmail.com
+SMTP Server: smtp.gmail.com
+SMTP Port: 587
+Username: rosssaab@gmail.com
+Password length: 16 characters
+Error during analysis: (pyodbc.ProgrammingError) ('42S02', "[42S02] [Microsoft][SQL Server Native Client 11.0][SQL Server]Invalid object name 'coingecko_crypto_social_data'. (208) (SQLExecDirectW)")
+[SQL: 
+    WITH PriceChanges AS (
+        SELECT 
+            d1.crypto_id,
+            d1.price_date,
+            d1.current_price,
+            d1.price_change_24h,
+            s.twitter_followers,
+            s.reddit_subscribers,
+            s.reddit_active_users_48h
+        FROM coingecko_crypto_daily_data d1
+        JOIN coingecko_crypto_social_data s 
+            ON d1.crypto_id = s.crypto_id 
+            AND d1.price_date = s.metric_date
+        WHERE d1.price_date >= DATEADD(day, -30, GETDATE())
+    )
+    SELECT 
+        crypto_id,
+        AVG(price_change_24h) as avg_price_change,
+        AVG(twitter_followers) as avg_twitter_followers,
+        AVG(reddit_subscribers) as avg_reddit_subscribers,
+        AVG(reddit_active_users_48h) as avg_reddit_active_users
+    FROM PriceChanges
+    GROUP BY crypto_id
+    ORDER BY avg_price_change DESC
+    ]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Email Configuration:
+From: rosssaab@gmail.com
+To: where.to.send@gmail.com
+SMTP Server: smtp.gmail.com
+SMTP Port: 587
+Username: rosssaab@gmail.com
+Password length: 16 characters
+Error during analysis: (pyodbc.ProgrammingError) ('42S02', "[42S02] [Microsoft][SQL Server Native Client 11.0][SQL Server]Invalid object name 'coingecko_crypto_social_data'. (208) (SQLExecDirectW)")
+[SQL: 
+    WITH PriceChanges AS (
+        SELECT 
+            d1.crypto_id,
+            d1.price_date,
+            d1.current_price,
+            d1.price_change_24h,
+            s.twitter_followers,
+            s.reddit_subscribers,
+            s.reddit_active_users_48h
+        FROM coingecko_crypto_daily_data d1
+        JOIN coingecko_crypto_social_data s 
+            ON d1.crypto_id = s.crypto_id 
+            AND d1.price_date = s.metric_date
+        WHERE d1.price_date >= DATEADD(day, -30, GETDATE())
+    )
+    SELECT 
+        crypto_id,
+        AVG(price_change_24h) as avg_price_change,
+        AVG(twitter_followers) as avg_twitter_followers,
+        AVG(reddit_subscribers) as avg_reddit_subscribers,
+        AVG(reddit_active_users_48h) as avg_reddit_active_users
+    FROM PriceChanges
+    GROUP BY crypto_id
+    ORDER BY avg_price_change DESC
+    ]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Email Configuration:
+From: rosssaab@gmail.com
+To: where.to.send@gmail.com
+SMTP Server: smtp.gmail.com
+SMTP Port: 587
+Username: rosssaab@gmail.com
+Password length: 16 characters
+Error during analysis: (pyodbc.ProgrammingError) ('42S02', "[42S02] [Microsoft][SQL Server Native Client 11.0][SQL Server]Invalid object name 'coingecko_crypto_social_data'. (208) (SQLExecDirectW)")
+[SQL: 
+    WITH PriceChanges AS (
+        SELECT 
+            d1.crypto_id,
+            d1.price_date,
+            d1.current_price,
+            d1.price_change_24h,
+            s.twitter_followers,
+            s.reddit_subscribers,
+            s.reddit_active_users_48h
+        FROM coingecko_crypto_daily_data d1
+        JOIN coingecko_crypto_social_data s 
+            ON d1.crypto_id = s.crypto_id 
+            AND d1.price_date = s.metric_date
+        WHERE d1.price_date >= DATEADD(day, -30, GETDATE())
+    )
+    SELECT 
+        crypto_id,
+        AVG(price_change_24h) as avg_price_change,
+        AVG(twitter_followers) as avg_twitter_followers,
+        AVG(reddit_subscribers) as avg_reddit_subscribers,
+        AVG(reddit_active_users_48h) as avg_reddit_active_users
+    FROM PriceChanges
+    GROUP BY crypto_id
+    ORDER BY avg_price_change DESC
+    ]
+(Background on this error at: https://sqlalche.me/e/20/f405)
+Email Configuration:
+From: rosssaab@gmail.com
+To: where.to.send@gmail.com
+SMTP Server: smtp.gmail.com
+SMTP Port: 587
+Username: rosssaab@gmail.com
+Password length: 16 characters
+
+Top 20 coins by price change in the last 30 days:
+                 name   symbol  ...        volume  trending_days
+0           Curve DAO      crv  ...  8.348872e+08              0
+1               ai16z    ai16z  ...  1.193849e+08             22
+2       Theta Network    theta  ...  9.458901e+07              0
+3              Ethena      ena  ...  5.857483e+08              5
+4   Virtuals Protocol  virtual  ...  3.943205e+08             22
+5              KuCoin      kcs  ...  3.502368e+05              0
+6              Solana      sol  ...  5.196495e+09             21
+7                Aave     aave  ...  9.512719e+08              0
+8        Pyth Network     pyth  ...  1.112635e+08              0
+9         Hyperliquid     hype  ...  2.270593e+08             19
+10              Aptos      apt  ...  5.235616e+08              0
+11             Hedera     hbar  ...  1.446789e+09              0
+12            Raydium      ray  ...  1.325390e+08              0
+13           Celestia      tia  ...  2.565550e+08              0
+14              Tezos      xtz  ...  1.283085e+08              0
+15               Gate       gt  ...  1.751018e+07              0
+16               GALA     gala  ...  3.892079e+08              0
+17                Sui      sui  ...  1.671740e+09             13
+18    Rocket Pool ETH     reth  ...  1.028044e+07              0
+19   Binance-Peg WETH     weth  ...  7.751137e+07              0
+
+[20 rows x 6 columns]
+
+Correlations with price change:
+price_change     1.000000
+trending_days    0.080794
+volume          -0.229660
+market_cap      -0.252888
+Name: price_change, dtype: float64
+Email Configuration:
+From: rosssaab@gmail.com
+To: where.to.send@gmail.com
+SMTP Server: smtp.gmail.com
+SMTP Port: 587
+Username: rosssaab@gmail.com
+Password length: 16 characters
+
+Top 20 coins by price change in the last 30 days:
+                 name   symbol  ...        volume  trending_days
+0           Curve DAO      crv  ...  8.348872e+08              0
+1               ai16z    ai16z  ...  1.193849e+08             22
+2       Theta Network    theta  ...  9.458901e+07              0
+3              Ethena      ena  ...  5.857483e+08              5
+4   Virtuals Protocol  virtual  ...  3.943205e+08             22
+5              KuCoin      kcs  ...  3.502368e+05              0
+6              Solana      sol  ...  5.196495e+09             21
+7                Aave     aave  ...  9.512719e+08              0
+8        Pyth Network     pyth  ...  1.112635e+08              0
+9         Hyperliquid     hype  ...  2.270593e+08             19
+10              Aptos      apt  ...  5.235616e+08              0
+11             Hedera     hbar  ...  1.446789e+09              0
+12            Raydium      ray  ...  1.325390e+08              0
+13           Celestia      tia  ...  2.565550e+08              0
+14              Tezos      xtz  ...  1.283085e+08              0
+15               Gate       gt  ...  1.751018e+07              0
+16               GALA     gala  ...  3.892079e+08              0
+17                Sui      sui  ...  1.671740e+09             13
+18    Rocket Pool ETH     reth  ...  1.028044e+07              0
+19   Binance-Peg WETH     weth  ...  7.751137e+07              0
+
+[20 rows x 6 columns]
+
+Correlations with price change:
+price_change     1.000000
+trending_days    0.080794
+volume          -0.229660
+market_cap      -0.252888
+Name: price_change, dtype: float64
+Email Configuration:
+From: rosssaab@gmail.com
+To: where.to.send@gmail.com
+SMTP Server: smtp.gmail.com
+SMTP Port: 587
+Username: rosssaab@gmail.com
+Password length: 16 characters
+
+Top 20 coins by price change in the last 30 days:
+                 name   symbol  ...        volume  trending_days
+0           Curve DAO      crv  ...  8.348872e+08              0
+1               ai16z    ai16z  ...  1.336916e+08             25
+2       Theta Network    theta  ...  9.225983e+07              0
+3   Virtuals Protocol  virtual  ...  4.037443e+08             25
+4              Ethena      ena  ...  5.700048e+08              6
+5                Pepe     pepe  ...  3.088119e+09              6
+6              Solana      sol  ...  5.144815e+09             24
+7              KuCoin      kcs  ...  3.432885e+05              0
+8                Gate       gt  ...  1.730915e+07              0
+9             Raydium      ray  ...  1.296581e+08              0
+10       Pyth Network     pyth  ...  1.080842e+08              0
+11          Fasttoken      ftn  ...  4.631887e+07              0
+12             Hedera     hbar  ...  1.399794e+09              0
+13              Aptos      apt  ...  5.093902e+08              0
+14                Sui      sui  ...  1.661232e+09             14
+15              Tezos      xtz  ...  1.259332e+08              0
+16               GALA     gala  ...  3.769921e+08              0
+17             Mantle      mnt  ...  1.401495e+08              0
+18               Aave     aave  ...  9.345806e+08              0
+19           Dogecoin     doge  ...  4.832283e+09              0
+
+[20 rows x 6 columns]
+
+Correlations with price change:
+price_change     1.000000
+trending_days    0.097336
+volume          -0.233354
+market_cap      -0.252477
+Name: price_change, dtype: float64

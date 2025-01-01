@@ -1,0 +1,152 @@
+Email Configuration:
+From: rosssaab@gmail.com
+To: where.to.send@gmail.com
+SMTP Server: smtp.gmail.com
+SMTP Port: 587
+Username: rosssaab@gmail.com
+Password length: 16 characters
+
+Top 20 coins by price change in the last 30 days:
+                 name   symbol  ...        volume  trending_days
+0           Curve DAO      crv  ...  8.373410e+08              0
+1               ai16z    ai16z  ...  1.426492e+08             27
+2   Virtuals Protocol  virtual  ...  4.106939e+08             27
+3       Theta Network    theta  ...  8.601023e+07              0
+4                Pepe     pepe  ...  3.055108e+09              8
+5              Ethena      ena  ...  5.594720e+08              6
+6              Solana      sol  ...  5.105615e+09             24
+7                Gate       gt  ...  1.739870e+07              0
+8           Fasttoken      ftn  ...  4.671852e+07              0
+9              MANTRA       om  ...  9.387885e+07              4
+10             KuCoin      kcs  ...  3.393919e+05              0
+11             Mantle      mnt  ...  1.401266e+08              0
+12            Raydium      ray  ...  1.279671e+08              0
+13               GALA     gala  ...  3.661690e+08              0
+14       Pyth Network     pyth  ...  1.041913e+08              0
+15                Sui      sui  ...  1.654160e+09             14
+16              Aptos      apt  ...  4.988456e+08              0
+17        The Sandbox     sand  ...  4.836957e+08              0
+18           Dogecoin     doge  ...  4.678737e+09              0
+19             Hedera     hbar  ...  1.349518e+09              0
+
+[20 rows x 6 columns]
+
+Correlations with price change:
+price_change     1.000000
+trending_days    0.102430
+volume          -0.235695
+market_cap      -0.252137
+Name: price_change, dtype: float64
+Email Configuration:
+From: rosssaab@gmail.com
+To: where.to.send@gmail.com
+SMTP Server: smtp.gmail.com
+SMTP Port: 587
+Username: rosssaab@gmail.com
+Password length: 16 characters
+
+Top 20 coins by price change in the last 30 days:
+                 name   symbol  ...        volume  trending_days
+0           Curve DAO      crv  ...  8.373410e+08              0
+1               ai16z    ai16z  ...  1.481064e+08             30
+2   Virtuals Protocol  virtual  ...  4.208561e+08             30
+3                Pepe     pepe  ...  3.206230e+09             10
+4       Theta Network    theta  ...  8.390506e+07              0
+5              MANTRA       om  ...  9.275932e+07              6
+6                Gate       gt  ...  1.715186e+07              0
+7              Solana      sol  ...  5.045990e+09             25
+8              Ethena      ena  ...  5.416397e+08              6
+9           Fasttoken      ftn  ...  4.777730e+07              0
+10             Mantle      mnt  ...  1.398890e+08              0
+11           Litecoin      ltc  ...  9.476688e+08              0
+12          dogwifhat      wif  ...  5.916530e+08              0
+13               GALA     gala  ...  3.541803e+08              0
+14            Raydium      ray  ...  1.252639e+08              0
+15        The Sandbox     sand  ...  4.661736e+08              0
+16             Stacks      stx  ...  2.220611e+08              0
+17                Sui      sui  ...  1.615902e+09             14
+18           Dogecoin     doge  ...  4.554141e+09              0
+19             KuCoin      kcs  ...  3.284023e+05              0
+
+[20 rows x 6 columns]
+
+Correlations with price change:
+price_change     1.000000
+trending_days    0.105306
+volume          -0.241400
+market_cap      -0.253658
+Name: price_change, dtype: float64
+Email Configuration:
+From: rosssaab@gmail.com
+To: where.to.send@gmail.com
+SMTP Server: smtp.gmail.com
+SMTP Port: 587
+Username: rosssaab@gmail.com
+Password length: 16 characters
+
+Top 20 coins by price change in the last 30 days:
+                 name   symbol  ...        volume  trending_days
+0           Curve DAO      crv  ...  8.373410e+08              0
+1               ai16z    ai16z  ...  1.538159e+08             33
+2   Virtuals Protocol  virtual  ...  4.287447e+08             33
+3                Pepe     pepe  ...  3.268316e+09             13
+4              MANTRA       om  ...  9.154176e+07              8
+5       Theta Network    theta  ...  8.195594e+07              0
+6                Gate       gt  ...  1.696268e+07              0
+7    Tokenize Xchange      tkx  ...  2.276618e+07              0
+8              Solana      sol  ...  4.977137e+09             25
+9      Pudgy Penguins    pengu  ...  6.877548e+08             32
+10             Mantle      mnt  ...  1.390197e+08              0
+11          Fasttoken      ftn  ...  4.927685e+07              0
+12           Litecoin      ltc  ...  9.264920e+08              0
+13             Ethena      ena  ...  5.241506e+08              6
+14           Algorand     algo  ...  4.050635e+08              0
+15               GALA     gala  ...  3.427047e+08              0
+16          dogwifhat      wif  ...  5.802287e+08              0
+17        The Sandbox     sand  ...  4.495893e+08              0
+18           Dogecoin     doge  ...  4.434214e+09              0
+19            Raydium      ray  ...  1.225968e+08              0
+
+[20 rows x 6 columns]
+
+Correlations with price change:
+price_change     1.000000
+trending_days    0.110500
+volume          -0.245703
+market_cap      -0.254329
+Name: price_change, dtype: float64
+Email Configuration:
+From: rosssaab@gmail.com
+To: where.to.send@gmail.com
+SMTP Server: smtp.gmail.com
+SMTP Port: 587
+Username: rosssaab@gmail.com
+Password length: 16 characters
+Error during analysis: (pyodbc.ProgrammingError) ('42S02', "[42S02] [Microsoft][SQL Server Native Client 11.0][SQL Server]Invalid object name 'coingecko_crypto_social_data'. (208) (SQLExecDirectW)")
+[SQL: 
+    WITH PriceChanges AS (
+        SELECT 
+            d1.crypto_id,
+            d1.price_date,
+            d1.current_price,
+            d1.price_change_24h,
+            s.twitter_followers,
+            s.reddit_subscribers,
+            s.reddit_active_users_48h
+        FROM coingecko_crypto_daily_data d1
+        JOIN coingecko_crypto_social_data s 
+            ON d1.crypto_id = s.crypto_id 
+            AND d1.price_date = s.metric_date
+        WHERE d1.price_date >= DATEADD(day, -30, GETDATE())
+    )
+    SELECT 
+        crypto_id,
+        AVG(price_change_24h) as avg_price_change,
+        AVG(twitter_followers) as avg_twitter_followers,
+        AVG(reddit_subscribers) as avg_reddit_subscribers,
+        AVG(reddit_active_users_48h) as avg_reddit_active_users
+    FROM PriceChanges
+    GROUP BY crypto_id
+    ORDER BY avg_price_change DESC
+    ]
+(Background on this error at: https://sqlalche.me/e/20/f405)
