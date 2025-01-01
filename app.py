@@ -7,6 +7,18 @@ app = Flask(__name__)
 # Create SQLAlchemy engine - add this at the top level
 engine = create_engine(f'mssql+pyodbc://{DB_USER}:{DB_PASSWORD}@{DB_SERVER}/{DB_NAME}?driver=SQL+Server+Native+Client+11.0')
 
+def format_price(price):
+    if price is None:
+        return "0.00"
+    
+    try:
+        price = float(price)  # Convert to float first
+        if price < 0.01:
+            return f"{price:.8f}"
+        return f"{price:.2f}"
+    except (ValueError, TypeError):
+        return "0.00"
+
 @app.route('/')
 def index():
     try:
@@ -56,7 +68,7 @@ def index():
                     'name': row.name,
                     'symbol': row.symbol,
                     'image_url': f"https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/{row.symbol.lower()}.png",
-                    'current_price': float(row.current_price) if row.current_price else 0,
+                    'current_price': format_price(row.current_price),
                     'price_change_24h': float(row.price_change_24h) if row.price_change_24h else 0,
                     'market_cap': float(row.market_cap) if row.market_cap else 0,
                     'total_volume': float(row.total_volume) if row.total_volume else 0,
@@ -407,6 +419,60 @@ def get_price_history(crypto_id):
             
     except Exception as e:
         print(f"Error getting price history: {str(e)}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/crypto/<crypto_id>')
+def get_crypto_details(crypto_id):
+    try:
+        # Get the crypto data from your database
+        query = """
+        SELECT 
+            m.id,
+            m.name,
+            m.symbol,
+            d.current_price,
+            d.price_change_24h,
+            d.market_cap,
+            d.total_volume
+        FROM coingecko_crypto_master m
+        JOIN coingecko_crypto_daily_data d ON m.id = d.crypto_id
+        WHERE m.id = :crypto_id
+        AND d.price_date = (
+            SELECT MAX(price_date) 
+            FROM coingecko_crypto_daily_data
+        )
+        """
+        
+        with engine.connect() as connection:
+            result = connection.execute(text(query), {"crypto_id": crypto_id}).fetchone()
+            
+            if not result:
+                return jsonify({'error': 'Coin not found'}), 404
+                
+            # Use the correct image URL format
+            image_url = f"https://lcw.nyc3.cdn.digitaloceanspaces.com/production/currencies/64/{result.symbol.lower()}.png"
+            
+            return jsonify({
+                'id': result.id,
+                'name': result.name,
+                'symbol': result.symbol,
+                'image_url': image_url,  # Updated image URL
+                'current_price': float(result.current_price) if result.current_price else 0,
+                'price_change_24h': float(result.price_change_24h) if result.price_change_24h else 0,
+                'market_cap': float(result.market_cap) if result.market_cap else 0,
+                'total_volume': float(result.total_volume) if result.total_volume else 0,
+                'sentiment_up': 65,  # Placeholder values
+                'sentiment_down': 35,
+                'interest_score': 85,
+                'price_history': [
+                    {'timestamp': '2024-01-01', 'price': 95.00},
+                    {'timestamp': '2024-01-02', 'price': 97.50},
+                    {'timestamp': '2024-01-03', 'price': 100.00}
+                ]
+            })
+            
+    except Exception as e:
+        print(f"Error getting crypto details: {str(e)}")
         return jsonify({'error': str(e)}), 500
 
 if __name__ == '__main__':
