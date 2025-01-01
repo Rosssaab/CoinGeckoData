@@ -55,13 +55,18 @@ body {
 }
 
 /* Chart styles */
-.chart-container { 
-    margin-top: 20px; 
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+    margin-bottom: 40px;
 }
 
-.slider-container { 
-    margin: 0 20px 20px 20px;
-    padding: 0 15px;
+.date-range-label {
+    font-size: 0.9rem;
+    color: #6c757d;
+    margin-bottom: 10px;
+    padding-left: 10px;
 }
 
 /* Slider customization */
@@ -224,4 +229,10 @@ th.sortable {
 /* Add specific width for other sortable columns if needed */
 th.sortable[data-sort="name"] {
     min-width: 250px;
+}
+
+/* Slider container adjustments */
+.slider-container {
+    margin: 20px 20px;
+    padding: 0 15px;
 } 
