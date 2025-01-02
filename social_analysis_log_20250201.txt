@@ -1,0 +1,25 @@
+Email Configuration:
+From: rosssaab@gmail.com
+To: where.to.send@gmail.com
+SMTP Server: smtp.gmail.com
+SMTP Port: 587
+Username: rosssaab@gmail.com
+Password length: 16 characters
+Social data table created or already exists
+
+Top 10 coins by price change and their social metrics:
+          crypto_id  avg_price_change  ...  avg_reddit_active_users  data_points
+0          fartcoin         44.737500  ...                        0            4
+1   curve-dao-token         12.732857  ...                        0           31
+2             ai16z         10.502564  ...                        0           63
+3  virtual-protocol          7.071538  ...                        0           63
+4  tokenize-xchange          4.974358  ...                        0           63
+5              pepe          3.851538  ...                        0           63
+6       theta-token          2.894358  ...                        0           63
+7    pudgy-penguins          2.767435  ...                        0           50
+8       based-brett          2.625454  ...                        0           46
+9            ethena          2.600512  ...                        0           63
+
+[10 rows x 6 columns]
+
+No social metrics data available for correlation analysis
